@@ -27,26 +27,26 @@ npx eagle install
 ```
 
 交互式询问安装级别：
-- **用户级** — 自动写入 `~/.claude/settings.json`，注册插件，全局生效，重启 Claude Code 即可用
-- **项目级** — 在当前目录接入 Eagle 上下文（`.eagle/`、规范、组件蓝图、生命周期、代码库地图）
+- **用户级** — 复制 Eagle skills / agents / hooks / scripts 到 `~/.claude/`，全局生效
+- **项目级** — 复制 Eagle skills / agents / hooks / scripts 到当前项目 `.claude/`，并初始化 `.eagle/`
 
 或直接指定级别：
 
 ```bash
-npx eagle install --user      # 仅注册全局插件
-npx eagle install --project   # 仅初始化当前项目
+npx eagle install --user      # 仅安装到 ~/.claude/
+npx eagle install --project   # 仅安装到当前项目
 npx eagle install --all       # 两层都安装
 ```
 
 ### 分步安装
 
-**第一步：注册 Claude Code 插件（用户级，一次性）**
+**第一步：安装用户级能力（可选，一次性）**
 
 ```bash
 npx eagle install --user
 ```
 
-修改 `~/.claude/settings.json`，添加 `pluginMarketplaces` 和 `enabledPlugins`，重启 Claude Code 后 `/discuss`、`/dev`、`/fix`、`/refactor`、`/new-project` 全局可用。
+复制 `plugin/agents`、`plugin/skills`、`plugin/hooks`、`plugin/scripts` 到 `~/.claude/`，并写入 Eagle 的 SessionStart hook。重启 Claude Code 后，`eagle-*` skills 和 agents 全局可用。
 
 **第二步：接入业务项目（项目级，每个项目一次）**
 
@@ -56,6 +56,7 @@ npx eagle install --project
 ```
 
 项目级安装不会询问项目名或技术栈，也不会生成业务目录。它只会：
+- 复制 Eagle skills / agents / hooks / scripts 到当前项目 `.claude/`
 - 初始化 `.eagle/` 上下文
 - 复制通用编码规范（`.eagle/rules/`）
 - 复制组件蓝图（`.eagle/components/`）
@@ -127,6 +128,12 @@ eagle-framework/
 
 ```
 my-project/
+├── .claude/
+│   ├── agents/         ← eagle-* agents
+│   ├── skills/         ← eagle-* skills
+│   ├── hooks/eagle/    ← Eagle hook 快照
+│   ├── scripts/eagle/  ← Eagle 脚本快照
+│   └── settings.json   ← 项目级 SessionStart hook
 ├── .eagle/
 │   ├── config.json     ← 工作流配置（生命周期 / 门禁 / 记忆 / 代码库地图）
 │   ├── PROJECT.md      ← 项目目标、用户、约束、长期决策
@@ -213,8 +220,8 @@ npx eagle uninstall
 交互式询问卸载级别，或直接指定：
 
 ```bash
-npx eagle uninstall --user      # 仅移除全局插件注册
-npx eagle uninstall --project   # 仅清理当前项目 .eagle/
+npx eagle uninstall --user      # 删除 ~/.claude/ 中 Eagle runtime
+npx eagle uninstall --project   # 删除当前项目 .claude/ 中 Eagle runtime 和 .eagle/
 npx eagle uninstall --all       # 彻底卸载两层
 ```
 
@@ -224,7 +231,7 @@ npx eagle uninstall --all       # 彻底卸载两层
 npx eagle uninstall --user
 ```
 
-自动从 `~/.claude/settings.json` 移除 `pluginMarketplaces` 和 `enabledPlugins` 中的 Eagle 条目，重启 Claude Code 后生效。
+自动删除 `~/.claude/agents/eagle-*`、`~/.claude/skills/eagle-*`、`~/.claude/hooks/eagle/`、`~/.claude/scripts/eagle/`，并清理 Eagle 的 SessionStart hook。也会清理旧版 `pluginMarketplaces` / `enabledPlugins` 注册。
 
 ### 项目级卸载
 
@@ -233,14 +240,13 @@ cd my-project
 npx eagle uninstall --project
 ```
 
-交互式删除：
-- `.eagle/rules/` — 编码规范快照（安全删除）
-- `.eagle/components/` — 组件蓝图快照（安全删除）
-- `.eagle/QUICKSTART.md`
-- 可选：`.eagle/knowledge/` / `.eagle/memory/` / `.eagle/tasks/`（你积累的数据，默认保留，单独询问）
-- 自动清理 `.gitignore` 中的 Eagle 条目
-
-> `.eagle/knowledge/` 和 `.eagle/memory/` 是你在项目中积累的知识，不会默默删除，会单独询问。
+自动删除：
+- 当前项目 `.claude/agents/eagle-*`
+- 当前项目 `.claude/skills/eagle-*`
+- 当前项目 `.claude/hooks/eagle/`
+- 当前项目 `.claude/scripts/eagle/`
+- 当前项目 `.eagle/`
+- `.gitignore` 中的 Eagle 条目
 
 ---
 
@@ -270,7 +276,7 @@ cd C:\path\to\your-project
 eagle install --project
 ```
 
-如果还没有注册用户级插件，先执行一次：
+如果还没有安装用户级 Eagle，先执行一次：
 
 ```bash
 cd C:\Users\loco9\Desktop\eagle-framework

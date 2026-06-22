@@ -9,6 +9,7 @@ const readline = require('readline')
 
 const FRAMEWORK_DIR       = path.join(__dirname, '..')
 const TARGET_DIR          = process.cwd()
+const USER_CLAUDE_DIR     = path.join(os.homedir(), '.claude')
 const CLAUDE_SETTINGS     = path.join(os.homedir(), '.claude', 'settings.json')
 const PLUGIN_KEY          = 'eagle@eagle-framework'
 
@@ -67,8 +68,8 @@ async function installCommand(opts) {
 
   if (opts.interactive) {
     log('选择安装级别（可多选，空格分隔）：')
-    log('  [1] 用户级  — 注册 Claude Code 插件，全局所有项目可用')
-    log('  [2] 项目级  — 复制规范/组件蓝图到当前项目 .eagle/')
+    log('  [1] 用户级  — 安装 skills/agents 到 ~/.claude/')
+    log('  [2] 项目级  — 安装 skills/agents 到当前项目 .claude/，并初始化 .eagle/')
     log('  [3] 全部    — 同时安装两层')
     log('')
     const input = await ask('输入编号 (例: 1 2 或 3): ')
@@ -87,45 +88,14 @@ async function installCommand(opts) {
   if (project) await installProject()
 }
 
-// ── 用户级安装：写入 ~/.claude/settings.json ─────────────────────────────────
+// ── 用户级安装：写入 ~/.claude/ ───────────────────────────────────────────────
 
 async function installUser() {
-  log(`${c.bold}[用户级] 注册 Claude Code 插件${c.reset}`)
-
-  const gitUrl = resolveGitUrl()
-  if (!gitUrl) {
-    err('无法确定框架 git 地址，跳过用户级安装。')
-    err('请在 package.json 的 repository.url 填写正确地址后重试。')
-    return
-  }
-
-  info(`插件地址：${gitUrl}`)
-
-  const settings = readClaudeSettings()
-
-  // pluginMarketplaces
-  if (!Array.isArray(settings.pluginMarketplaces)) {
-    settings.pluginMarketplaces = []
-  }
-  if (settings.pluginMarketplaces.includes(gitUrl)) {
-    info('pluginMarketplaces 中已包含该地址，跳过')
-  } else {
-    settings.pluginMarketplaces.push(gitUrl)
-  }
-
-  // enabledPlugins
-  if (!settings.enabledPlugins || typeof settings.enabledPlugins !== 'object') {
-    settings.enabledPlugins = {}
-  }
-  if (settings.enabledPlugins[PLUGIN_KEY] === true) {
-    info(`enabledPlugins["${PLUGIN_KEY}"] 已启用，跳过`)
-  } else {
-    settings.enabledPlugins[PLUGIN_KEY] = true
-  }
-
-  writeClaudeSettings(settings)
-  ok(`用户级安装完成 → ${CLAUDE_SETTINGS}`)
-  dim('  重启 Claude Code 后生效，/discuss /dev /fix /refactor /new-project 全局可用')
+  log(`${c.bold}[用户级] 安装 Eagle skills / agents${c.reset}`)
+  installClaudeRuntime(USER_CLAUDE_DIR, 'user')
+  removeLegacyPluginRegistration()
+  ok(`用户级安装完成 → ${USER_CLAUDE_DIR}`)
+  dim('  重启 Claude Code 后生效，eagle-* skills 和 agents 全局可用')
   log('')
 }
 
@@ -148,6 +118,9 @@ async function installProject() {
   log('\n📁 创建 Eagle 上下文目录...')
   createEagleDirs()
 
+  log('🧠 安装项目级 skills / agents...')
+  installClaudeRuntime(path.join(TARGET_DIR, '.claude'), 'project')
+
   log('📋 复制编码规范...')
   copyAvailableRules()
 
@@ -162,7 +135,7 @@ async function installProject() {
 
   log('')
   ok(`项目级接入完成："${projectName}"`)
-  dim('  后续直接使用 /eagle:dev <需求> 开始新功能迭代')
+  dim('  重启 Claude Code 后，当前项目可使用 eagle-* skills / agents')
   log('')
 }
 
@@ -175,8 +148,8 @@ async function uninstallCommand(opts) {
 
   if (opts.interactive) {
     log('选择卸载级别（可多选，空格分隔）：')
-    log('  [1] 用户级  — 从 ~/.claude/settings.json 移除插件注册')
-    log('  [2] 项目级  — 删除当前项目 .eagle/ 中的框架文件')
+    log('  [1] 用户级  — 删除 ~/.claude/ 中 Eagle skills/agents/hooks/scripts')
+    log('  [2] 项目级  — 删除当前项目 .claude/ 中 Eagle runtime 和 .eagle/')
     log('  [3] 全部    — 同时卸载两层')
     log('')
     const input = await ask('输入编号 (例: 1 2 或 3): ')
@@ -195,102 +168,32 @@ async function uninstallCommand(opts) {
   if (project) await uninstallProject()
 }
 
-// ── 用户级卸载：从 ~/.claude/settings.json 移除 ──────────────────────────────
+// ── 用户级卸载：清理 ~/.claude/ Eagle runtime ────────────────────────────────
 
 async function uninstallUser() {
-  log(`${c.bold}[用户级] 移除 Claude Code 插件注册${c.reset}`)
-
-  const settings = readClaudeSettings()
-  const gitUrl   = resolveGitUrl()
-  let changed    = false
-
-  // pluginMarketplaces
-  if (Array.isArray(settings.pluginMarketplaces) && gitUrl) {
-    const before = settings.pluginMarketplaces.length
-    settings.pluginMarketplaces = settings.pluginMarketplaces.filter(u => u !== gitUrl)
-    if (settings.pluginMarketplaces.length < before) {
-      info('已从 pluginMarketplaces 移除')
-      changed = true
-    } else {
-      info('pluginMarketplaces 中未找到该地址，跳过')
-    }
-    if (settings.pluginMarketplaces.length === 0) {
-      delete settings.pluginMarketplaces
-    }
-  }
-
-  // enabledPlugins
-  if (settings.enabledPlugins && settings.enabledPlugins[PLUGIN_KEY] !== undefined) {
-    delete settings.enabledPlugins[PLUGIN_KEY]
-    info(`已从 enabledPlugins 移除 "${PLUGIN_KEY}"`)
-    changed = true
-    if (Object.keys(settings.enabledPlugins).length === 0) {
-      delete settings.enabledPlugins
-    }
-  } else {
-    info(`enabledPlugins 中未找到 "${PLUGIN_KEY}"，跳过`)
-  }
-
-  if (changed) {
-    writeClaudeSettings(settings)
-    ok('用户级卸载完成')
-    dim('  重启 Claude Code 后生效')
-  } else {
-    warn('未发现需要清理的条目')
-  }
+  log(`${c.bold}[用户级] 删除 Eagle skills / agents${c.reset}`)
+  removeClaudeRuntime(USER_CLAUDE_DIR, 'user')
+  removeLegacyPluginRegistration()
+  ok(`用户级卸载完成 → ${USER_CLAUDE_DIR}`)
+  dim('  重启 Claude Code 后生效')
   log('')
 }
 
-// ── 项目级卸载：清理 .eagle/ ────────────────────────────────────────────────────
+// ── 项目级卸载：清理 .claude/ Eagle runtime + .eagle/ ─────────────────────────
 
 async function uninstallProject() {
-  log(`${c.bold}[项目级] 清理当前项目 .eagle/${c.reset}`)
+  log(`${c.bold}[项目级] 清理当前项目 Eagle 安装${c.reset}`)
 
   const eagleDir = path.join(TARGET_DIR, '.eagle')
-  if (!fs.existsSync(eagleDir)) {
-    warn('未找到 .eagle/ 目录，无需卸载')
-    return
-  }
+  const claudeDir = path.join(TARGET_DIR, '.claude')
 
-  const knowledgeCount = countFiles(path.join(eagleDir, 'knowledge'))
-  const memoryCount    = countFiles(path.join(eagleDir, 'memory'))
-  const taskCount      = countDirs(path.join(eagleDir, 'tasks'))
+  removeClaudeRuntime(claudeDir, 'project')
 
-  log('将删除（框架静态文件）：')
-  log('  .eagle/rules/        — 编码规范快照')
-  log('  .eagle/components/   — 组件蓝图快照')
-  log('  .eagle/QUICKSTART.md')
-  log('')
-  log('默认保留（你积累的项目数据）：')
-  log(`  .eagle/knowledge/    — ${knowledgeCount} 个文件`)
-  log(`  .eagle/memory/       — ${memoryCount} 个文件`)
-  log(`  .eagle/tasks/        — ${taskCount} 个历史任务`)
-  log('')
-
-  const confirm = await ask('确认删除框架静态文件？(y/N) ')
-  if (confirm.toLowerCase() !== 'y') { log('已取消'); return }
-
-  removeDirSafe(path.join(eagleDir, 'rules'))
-  removeDirSafe(path.join(eagleDir, 'components'))
-  removeFileSafe(path.join(eagleDir, 'QUICKSTART.md'))
-  ok('框架静态文件已删除')
-
-  if (knowledgeCount + memoryCount + taskCount > 0) {
-    log('')
-    const removeData = await ask('是否同时删除 knowledge / memory / tasks？(y/N) ')
-    if (removeData.toLowerCase() === 'y') {
-      removeDirSafe(path.join(eagleDir, 'knowledge'))
-      removeDirSafe(path.join(eagleDir, 'memory'))
-      removeDirSafe(path.join(eagleDir, 'tasks'))
-      ok('用户数据已删除')
-    } else {
-      info('knowledge / memory / tasks 已保留')
-    }
-  }
-
-  if (isDirEmpty(eagleDir)) {
-    fs.rmdirSync(eagleDir)
-    info('.eagle/ 目录已清空并移除')
+  if (fs.existsSync(eagleDir)) {
+    removeDirSafe(eagleDir)
+    ok('.eagle/ 已删除')
+  } else {
+    info('未找到 .eagle/，跳过')
   }
 
   cleanGitignore()
@@ -360,19 +263,19 @@ ${c.bold}命令：${c.reset}
   map        扫描现有项目并生成 .eagle/codebase/ 代码库地图
 
 ${c.bold}install / uninstall 选项：${c.reset}
-  ${c.yellow}--user,    -u${c.reset}  用户级：修改 ~/.claude/settings.json（全局插件）
-  ${c.yellow}--project, -p${c.reset}  项目级：初始化/清理当前项目 .eagle/
+  ${c.yellow}--user,    -u${c.reset}  用户级：安装/清理 ~/.claude/ Eagle runtime
+  ${c.yellow}--project, -p${c.reset}  项目级：安装/清理当前项目 .claude/ + .eagle/
   ${c.yellow}--all,     -a${c.reset}  两层都操作
   ${c.dim}（无选项）      交互式选择${c.reset}
 
 ${c.bold}示例：${c.reset}
   npx eagle install             # 交互式选择安装级别
-  npx eagle install --user      # 仅注册全局插件
-  npx eagle install --project   # 仅初始化当前项目
+  npx eagle install --user      # 仅安装到 ~/.claude/
+  npx eagle install --project   # 仅安装到当前项目
   npx eagle install --all       # 两层都安装
 
-  npx eagle uninstall --user    # 仅移除全局插件
-  npx eagle uninstall --project # 仅清理当前项目
+  npx eagle uninstall --user    # 仅清理 ~/.claude/ Eagle runtime
+  npx eagle uninstall --project # 仅清理当前项目 Eagle runtime
   npx eagle uninstall --all     # 彻底卸载
 
   npx eagle sense               # 感知当前项目
@@ -458,6 +361,187 @@ function copyDirSafe(src, dst) {
     const d = path.join(dst, entry.name)
     if (entry.isDirectory()) copyDirSafe(s, d)
     else if (!fs.existsSync(d)) fs.copyFileSync(s, d)
+  }
+}
+
+function copyDirOverwrite(src, dst) {
+  if (!fs.existsSync(src)) return
+  removeDirSafe(dst)
+  mkdirSafe(dst)
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const s = path.join(src, entry.name)
+    const d = path.join(dst, entry.name)
+    if (entry.isDirectory()) copyDirOverwrite(s, d)
+    else fs.copyFileSync(s, d)
+  }
+}
+
+function installClaudeRuntime(claudeRoot, scope) {
+  const pluginDir = path.join(FRAMEWORK_DIR, 'plugin')
+  const agentsSrc = path.join(pluginDir, 'agents')
+  const skillsSrc = path.join(pluginDir, 'skills')
+  const scriptsSrc = path.join(pluginDir, 'scripts')
+  const hooksSrc = path.join(pluginDir, 'hooks')
+
+  const agentsDst = path.join(claudeRoot, 'agents')
+  const skillsDst = path.join(claudeRoot, 'skills')
+  const scriptsDst = path.join(claudeRoot, 'scripts', 'eagle')
+  const hooksDst = path.join(claudeRoot, 'hooks', 'eagle')
+
+  mkdirSafe(agentsDst)
+  mkdirSafe(skillsDst)
+
+  if (fs.existsSync(agentsSrc)) {
+    for (const entry of fs.readdirSync(agentsSrc, { withFileTypes: true })) {
+      if (!entry.isFile() || !entry.name.endsWith('.md')) continue
+      const base = path.basename(entry.name, '.md')
+      fs.copyFileSync(path.join(agentsSrc, entry.name), path.join(agentsDst, `eagle-${base}.md`))
+    }
+  }
+
+  if (fs.existsSync(skillsSrc)) {
+    for (const entry of fs.readdirSync(skillsSrc, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue
+      copyDirOverwrite(path.join(skillsSrc, entry.name), path.join(skillsDst, `eagle-${entry.name}`))
+    }
+  }
+
+  copyDirOverwrite(scriptsSrc, scriptsDst)
+  copyDirOverwrite(hooksSrc, hooksDst)
+  upsertEagleHook(claudeRoot, scope)
+
+  info(`  agents → ${path.relative(TARGET_DIR, agentsDst) || agentsDst}`)
+  info(`  skills → ${path.relative(TARGET_DIR, skillsDst) || skillsDst}`)
+  info(`  scripts → ${path.relative(TARGET_DIR, scriptsDst) || scriptsDst}`)
+}
+
+function removeClaudeRuntime(claudeRoot, scope) {
+  const agentsDir = path.join(claudeRoot, 'agents')
+  const skillsDir = path.join(claudeRoot, 'skills')
+
+  if (fs.existsSync(agentsDir)) {
+    for (const entry of fs.readdirSync(agentsDir, { withFileTypes: true })) {
+      if (entry.isFile() && entry.name.startsWith('eagle-') && entry.name.endsWith('.md')) {
+        removeFileSafe(path.join(agentsDir, entry.name))
+      }
+    }
+  }
+
+  if (fs.existsSync(skillsDir)) {
+    for (const entry of fs.readdirSync(skillsDir, { withFileTypes: true })) {
+      if (entry.isDirectory() && entry.name.startsWith('eagle-')) {
+        removeDirSafe(path.join(skillsDir, entry.name))
+      }
+    }
+  }
+
+  removeDirSafe(path.join(claudeRoot, 'scripts', 'eagle'))
+  removeDirSafe(path.join(claudeRoot, 'hooks', 'eagle'))
+  removeEagleHook(claudeRoot)
+  pruneEmptyDirs([
+    path.join(claudeRoot, 'agents'),
+    path.join(claudeRoot, 'skills'),
+    path.join(claudeRoot, 'scripts'),
+    path.join(claudeRoot, 'hooks'),
+    claudeRoot
+  ], scope === 'project')
+}
+
+function upsertEagleHook(claudeRoot, scope) {
+  const settingsPath = path.join(claudeRoot, 'settings.json')
+  const settings = readJsonFile(settingsPath)
+  const scriptPath = scope === 'user'
+    ? path.join(claudeRoot, 'scripts', 'eagle', 'detect_project.py')
+    : path.join('.claude', 'scripts', 'eagle', 'detect_project.py')
+  const command = `python "${scriptPath}"`
+
+  settings.hooks = settings.hooks || {}
+  settings.hooks.SessionStart = Array.isArray(settings.hooks.SessionStart) ? settings.hooks.SessionStart : []
+
+  const alreadyExists = settings.hooks.SessionStart.some(entry =>
+    Array.isArray(entry.hooks) && entry.hooks.some(h => h.command === command)
+  )
+  if (!alreadyExists) {
+    settings.hooks.SessionStart.push({
+      hooks: [{ type: 'command', command }]
+    })
+  }
+
+  writeJsonFile(settingsPath, settings)
+}
+
+function removeEagleHook(claudeRoot) {
+  const settingsPath = path.join(claudeRoot, 'settings.json')
+  if (!fs.existsSync(settingsPath)) return
+  const settings = readJsonFile(settingsPath)
+  removeEagleHooksFromSettings(settings)
+  if (Object.keys(settings).length === 0) removeFileSafe(settingsPath)
+  else writeJsonFile(settingsPath, settings)
+}
+
+function removeEagleHooksFromSettings(settings) {
+  if (!settings.hooks || typeof settings.hooks !== 'object') return
+  for (const [eventName, entries] of Object.entries(settings.hooks)) {
+    if (!Array.isArray(entries)) continue
+    settings.hooks[eventName] = entries
+      .map(entry => ({
+        ...entry,
+        hooks: Array.isArray(entry.hooks)
+          ? entry.hooks.filter(h => !isEagleHookCommand(h.command))
+          : entry.hooks
+      }))
+      .filter(entry => !Array.isArray(entry.hooks) || entry.hooks.length > 0)
+    if (settings.hooks[eventName].length === 0) delete settings.hooks[eventName]
+  }
+  if (Object.keys(settings.hooks).length === 0) delete settings.hooks
+}
+
+function isEagleHookCommand(command) {
+  return typeof command === 'string'
+    && (command.includes('scripts/eagle/detect_project.py')
+      || command.includes('scripts\\eagle\\detect_project.py')
+      || command.includes('${CLAUDE_PLUGIN_ROOT}/scripts/detect_project.py'))
+}
+
+function removeLegacyPluginRegistration() {
+  if (!fs.existsSync(CLAUDE_SETTINGS)) return
+  const settings = readClaudeSettings()
+  const gitUrl = resolveGitUrl()
+
+  if (Array.isArray(settings.pluginMarketplaces) && gitUrl) {
+    settings.pluginMarketplaces = settings.pluginMarketplaces.filter(u => u !== gitUrl)
+    if (settings.pluginMarketplaces.length === 0) delete settings.pluginMarketplaces
+  }
+
+  if (settings.enabledPlugins && settings.enabledPlugins[PLUGIN_KEY] !== undefined) {
+    delete settings.enabledPlugins[PLUGIN_KEY]
+    if (Object.keys(settings.enabledPlugins).length === 0) delete settings.enabledPlugins
+  }
+
+  writeClaudeSettings(settings)
+}
+
+function readJsonFile(filePath) {
+  if (!fs.existsSync(filePath)) return {}
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'))
+  } catch {
+    warn(`无法解析 ${filePath}，将以空配置处理`)
+    return {}
+  }
+}
+
+function writeJsonFile(filePath, value) {
+  mkdirSafe(path.dirname(filePath))
+  fs.writeFileSync(filePath, JSON.stringify(value, null, 2) + '\n', 'utf8')
+}
+
+function pruneEmptyDirs(dirs, includeRoot = false) {
+  for (const dir of dirs) {
+    if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) continue
+    if (isDirEmpty(dir) && (includeRoot || dir !== dirs[dirs.length - 1])) {
+      fs.rmdirSync(dir)
+    }
   }
 }
 

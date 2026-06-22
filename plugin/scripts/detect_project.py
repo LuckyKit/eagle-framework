@@ -12,6 +12,18 @@ def detect_stack(project_root: str) -> list[str]:
     stacks = []
     if os.path.exists(os.path.join(project_root, "backend", "go.mod")):
         stacks.append("go")
+    python_markers = [
+        "backend/pyproject.toml",
+        "backend/requirements.txt",
+        "backend/poetry.lock",
+        "backend/Pipfile",
+        "pyproject.toml",
+        "requirements.txt",
+        "poetry.lock",
+        "Pipfile",
+    ]
+    if any(os.path.exists(os.path.join(project_root, marker)) for marker in python_markers):
+        stacks.append("python")
     if os.path.exists(os.path.join(project_root, "web", "package.json")):
         stacks.append("react")
     if os.path.exists(os.path.join(project_root, "mobile", "pubspec.yaml")):
