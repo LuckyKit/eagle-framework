@@ -10,14 +10,14 @@
     "url": "git@github.com:loco9/eagle-framework.git"
   },
   "bin": {
-    "eagle-framework": "./bin/create.js",
-    "eagle": "./bin/create.js"
+    "eagle-framework": "./bin/eagle.js",
+    "eagle": "./bin/eagle.js"
   },
   "scripts": {
-    "install:user":    "node bin/create.js install --user",
-    "install:project": "node bin/create.js install --project",
-    "uninstall:user":    "node bin/create.js uninstall --user",
-    "uninstall:project": "node bin/create.js uninstall --project"
+    "install:user":    "node bin/eagle.js install --user",
+    "install:project": "node bin/eagle.js install --project",
+    "uninstall:user":    "node bin/eagle.js uninstall --user",
+    "uninstall:project": "node bin/eagle.js uninstall --project"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -73,6 +73,17 @@ npx eagle install --project
 | `/dev` | 快捷执行：已有 PLAN.md 时跳过澄清，直接全自动执行；无 PLAN.md 时自动转 /discuss |
 | `/fix <描述>` | Bug 快捷入口：预填 Bug 类型，直接进入 /discuss 结构化澄清 → 全自动修复 |
 | `/refactor <目标>` | 重构快捷入口：预填重构类型，进入 /discuss 规划 → 分 Wave 执行 |
+| `/lifecycle` | 项目全生命周期管理：维护 PROJECT / ROADMAP / STATE / phases |
+| `/map-codebase` | 扫描现有项目并生成 `.eagle/codebase/` 代码库地图 |
+| `/gate` | 质量门禁：检查 plan / done 阶段是否满足交付底线 |
+| `/memory` | 跨会话长期记忆：沉淀决策、模式、踩坑和恢复上下文 |
+| `/config` | 配置系统：维护 `.eagle/config.json` 工作流策略 |
+
+CLI 辅助命令：
+
+```bash
+eagle map   # 扫描现有项目并刷新 .eagle/codebase/
+```
 
 ---
 
@@ -81,26 +92,29 @@ npx eagle install --project
 ```
 eagle-framework/
 │
-├── plugins/dev-framework/          ← Claude Code 插件（全局，所有项目共享）
+├── bin/
+│   └── eagle.js                    ← npx / CLI 入口脚本（很薄）
+│
+├── cli/
+│   └── commands.js                 ← install / uninstall / sense / map 实现
+│
+├── plugin/                         ← Claude Code 插件（全局，所有项目共享）
 │   ├── agents/                     ← analyst / coder / tester / reviewer / knowledge-writer / debugger
-│   ├── skills/                     ← discuss / dev / new-project / fix / refactor
+│   ├── skills/                     ← discuss / dev / new-project / fix / refactor / gate / memory ...
 │   ├── hooks/hooks.json            ← SessionStart 自动检测项目类型
 │   └── scripts/detect_project.py
 │
-├── .eagle/                           ← npx 复制到项目的内容
-│   ├── rules/
-│   │   ├── go/                     ← Go 编码规范（4 个文档）
-│   │   ├── react/                  ← React 编码规范（4 个文档）
-│   │   └── flutter/                ← Flutter 编码规范（4 个文档）
-│   └── components/
-│       └── auth/                   ← Auth 组件蓝图（spec + knowledge + 三端实现模式）
+├── payload/                         ← npx 映射复制到项目 .eagle/ 的内容
+│   ├── rules-go/                   ← Go 编码规范（安装到 .eagle/rules/go/）
+│   ├── rules-react/                ← React 编码规范（安装到 .eagle/rules/react/）
+│   ├── rules-flutter/              ← Flutter 编码规范（安装到 .eagle/rules/flutter/）
+│   └── component-auth/             ← Auth 组件蓝图（安装到 .eagle/components/auth/）
 │
 ├── templates/                      ← 项目骨架模板
 │   ├── go/                         ← go.mod / main.go / config.yaml
 │   ├── react/                      ← package.json / vite.config.ts
 │   └── flutter/                    ← pubspec.yaml
 │
-├── bin/create.js                   ← npx 入口脚本
 ├── .claude-plugin/marketplace.json ← 插件市场清单
 └── package.json
 ```
@@ -112,10 +126,17 @@ eagle-framework/
 ```
 my-project/
 ├── .eagle/
+│   ├── config.json     ← 工作流配置（生命周期 / 门禁 / 记忆 / 代码库地图）
+│   ├── PROJECT.md      ← 项目目标、用户、约束、长期决策
+│   ├── ROADMAP.md      ← 里程碑、Phase、Backlog
+│   ├── STATE.md        ← 当前状态、阻塞、最近决策、下一步
 │   ├── rules/          ← 编码规范（npx 复制，静态快照）
 │   ├── components/     ← 组件蓝图（npx 复制，静态快照）
+│   ├── codebase/       ← 代码库地图（STACK / STRUCTURE / TESTING / CONVENTIONS）
+│   ├── gates/          ← 质量门禁
 │   ├── knowledge/      ← 项目知识（开发中自动积累）
 │   ├── memory/         ← 踩坑记忆（开发中自动积累）
+│   ├── phases/         ← 阶段级上下文和交付记录
 │   └── tasks/          ← 任务目录（PLAN.md / TEST.md / REVIEW.md）
 ├── backend/            ← Go 后端
 ├── web/                ← React Web
@@ -125,6 +146,28 @@ my-project/
 **两层分工**：
 - **插件层**（全局）：Skills + Agents + Hooks — 所有项目共享，Claude Code 重启自动更新
 - **项目层**（私有）：rules + components + knowledge + memory — 项目启动时 npx 复制，各自独立
+
+---
+
+## 自用工作流取舍
+
+Eagle 借鉴 GSD 的结构，但默认只保留快速迭代最需要的部分：
+
+**必要，默认启用**
+- 全生命周期管理：`PROJECT.md` / `ROADMAP.md` / `STATE.md`
+- 代码库地图：`.eagle/codebase/`
+- 质量门禁：plan 前检查、done 前检查
+- 长期记忆：`.eagle/knowledge/` + `.eagle/memory/`
+- 配置系统：`.eagle/config.json`
+
+**暂缓，不默认实现**
+- 多运行时适配（Codex / Gemini / Cursor / Windsurf 等）
+- 复杂 worktree / 多工作区隔离
+- 自动 PR 创建和发布流水线
+- 大规模命令路由器和 capability 市场
+- 重型安全/供应链扫描
+
+这套默认值更适合个人快速开发：新项目初始化后，先有地图、状态、门禁和记忆，再逐步自动化。
 
 ---
 
@@ -212,14 +255,46 @@ cd eagle-framework
 npm install
 
 # 测试 npx 脚本
-node bin/create.js install --project
+node bin/eagle.js install --project
+```
+
+### 在本地项目中引用 Eagle
+
+开发 Eagle 本身时，推荐用 `npm link` 把当前框架链接成全局本地命令：
+
+```bash
+cd C:\Users\loco9\Desktop\eagle-framework
+npm link
+
+cd C:\path\to\your-project
+eagle install --project
+```
+
+如果还没有注册用户级插件，先执行一次：
+
+```bash
+cd C:\Users\loco9\Desktop\eagle-framework
+eagle install --user
+```
+
+不想使用 `npm link` 时，也可以直接调用本地入口：
+
+```bash
+cd C:\path\to\your-project
+node C:\Users\loco9\Desktop\eagle-framework\bin\eagle.js install --project
+```
+
+项目结构变化后刷新代码库地图：
+
+```bash
+eagle map
 ```
 
 ---
 
 ## 贡献
 
-1. 更新规范：修改 `.eagle/rules/{stack}/` 下的文档，同步更新 `INDEX.md`
-2. 更新 Agent/Skill：修改 `plugins/dev-framework/agents/` 或 `skills/`
-3. 新增组件：在 `.eagle/components/` 下创建新目录，包含 `spec.md` + `knowledge.md` + 三端 `pattern.md`
-4. 提交前测试 `bin/create.js init` 在空目录的行为
+1. 更新规范：修改 `payload/rules-{stack}/` 下的文档，同步更新 `INDEX.md`
+2. 更新 Agent/Skill：修改 `plugin/agents/` 或 `plugin/skills/`
+3. 新增组件：在 `payload/component-{name}/` 下创建目录，包含 `spec.md` + `knowledge.md` + 三端 `pattern.md`
+4. 提交前测试 `node bin/eagle.js install --project` 在空目录的行为
