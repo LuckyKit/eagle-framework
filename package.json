@@ -1,0 +1,25 @@
+{
+  "name": "eagle-framework",
+  "version": "0.1.0",
+  "description": "Eagle — Autonomous Full-Stack Development Framework for Go · React · Flutter",
+  "keywords": ["agent", "framework", "go", "react", "flutter", "fullstack", "claude-code"],
+  "author": "loco9",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:loco9/eagle-framework.git"
+  },
+  "bin": {
+    "eagle-framework": "./bin/create.js",
+    "eagle": "./bin/create.js"
+  },
+  "scripts": {
+    "install:user":    "node bin/create.js install --user",
+    "install:project": "node bin/create.js install --project",
+    "uninstall:user":    "node bin/create.js uninstall --user",
+    "uninstall:project": "node bin/create.js uninstall --project"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
