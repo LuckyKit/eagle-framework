@@ -129,38 +129,27 @@ async function installUser() {
   log('')
 }
 
-// ── 项目级安装：复制规范 + 生成骨架 ─────────────────────────────────────────
+// ── 项目级安装：接入当前项目，不改变业务项目结构 ─────────────────────────────
 
 async function installProject() {
-  log(`${c.bold}[项目级] 初始化当前项目${c.reset}`)
+  log(`${c.bold}[项目级] 接入当前项目${c.reset}`)
 
-  // 1. 项目名
-  const projectName = (await ask('项目名称（用于 go.mod / package.json）: ')).trim()
-  if (!projectName) { err('项目名称不能为空'); return }
+  const projectName = path.basename(TARGET_DIR)
+  const detectedStacks = detectStacks()
+  const stacks = detectedStacks.map(s => s.key)
 
-  // 2. 选择技术栈
-  log('\n选择技术栈（可多选，空格分隔编号）:')
-  log('  [1] Go 后端（backend/）')
-  log('  [2] React Web（web/）')
-  log('  [3] Flutter 移动端（mobile/）')
-  const stackInput   = await ask('\n输入编号 (例: 1 2 3): ')
-  const selectedNums = stackInput.split(/\s+/).map(Number).filter(n => [1,2,3].includes(n))
+  info(`项目：${projectName}`)
+  if (detectedStacks.length) {
+    info(`检测到技术栈：${detectedStacks.map(s => s.label).join(' + ')}`)
+  } else {
+    info('未检测到明确技术栈，先按通用项目初始化；后续可运行 eagle map 刷新')
+  }
 
-  if (selectedNums.length === 0) { err('至少选择一个技术栈'); return }
-
-  const stackMap = { 1: 'go', 2: 'react', 3: 'flutter' }
-  const stacks   = selectedNums.map(n => stackMap[n])
-
-  log('')
-  info(`将初始化：${stacks.join(' + ')} 项目`)
-  const confirm = await ask('确认？(Y/n) ')
-  if (confirm.toLowerCase() === 'n') { log('已取消'); return }
-
-  log('\n📁 创建目录结构...')
-  createDirectories(stacks)
+  log('\n📁 创建 Eagle 上下文目录...')
+  createEagleDirs()
 
   log('📋 复制编码规范...')
-  copyRules(stacks)
+  copyAvailableRules()
 
   log('🧩 复制组件蓝图...')
   copyComponents()
@@ -168,22 +157,12 @@ async function installProject() {
   log('🧭 初始化生命周期文件...')
   createLifecycleFiles(projectName, stacks)
 
-  log('⚙️  生成骨架文件...')
-  generateSkeletons(stacks, projectName)
-
   log('🗺️ 生成代码库地图...')
   mapCodebase(stacks)
 
-  if (!fs.existsSync(path.join(TARGET_DIR, '.git'))) {
-    log('🔧 初始化 git...')
-    initGit()
-  } else {
-    info('已有 .git 目录，跳过 git init')
-  }
-
   log('')
-  ok(`项目级安装完成："${projectName}"`)
-  dim('  运行 /discuss 开始第一个功能开发')
+  ok(`项目级接入完成："${projectName}"`)
+  dim('  后续直接使用 /eagle:dev <需求> 开始新功能迭代')
   log('')
 }
 
@@ -505,9 +484,23 @@ function cleanGitignore() {
 function detectStacks() {
   const stacks = []
   if (fs.existsSync(path.join(TARGET_DIR, 'backend', 'go.mod')))       stacks.push({ key: 'go',      label: 'Go' })
+  if (hasAny([
+    'backend/pyproject.toml',
+    'backend/requirements.txt',
+    'backend/poetry.lock',
+    'backend/Pipfile',
+    'pyproject.toml',
+    'requirements.txt',
+    'poetry.lock',
+    'Pipfile'
+  ])) stacks.push({ key: 'python', label: 'Python' })
   if (fs.existsSync(path.join(TARGET_DIR, 'web', 'package.json')))     stacks.push({ key: 'react',   label: 'React' })
   if (fs.existsSync(path.join(TARGET_DIR, 'mobile', 'pubspec.yaml')))  stacks.push({ key: 'flutter', label: 'Flutter' })
   return stacks
+}
+
+function hasAny(relPaths) {
+  return relPaths.some(p => fs.existsSync(path.join(TARGET_DIR, p)))
 }
 
 function createEagleDirs() {
@@ -686,6 +679,17 @@ function copyRules(stacks) {
   }
 }
 
+function copyAvailableRules() {
+  const payloadDir = path.join(FRAMEWORK_DIR, 'payload')
+  if (!fs.existsSync(payloadDir)) return
+
+  const stacks = fs.readdirSync(payloadDir, { withFileTypes: true })
+    .filter(entry => entry.isDirectory() && entry.name.startsWith('rules-'))
+    .map(entry => entry.name.replace(/^rules-/, ''))
+
+  copyRules(stacks)
+}
+
 function copyComponents() {
   const payloadDir = path.join(FRAMEWORK_DIR, 'payload')
   if (!fs.existsSync(payloadDir)) return
@@ -749,10 +753,12 @@ function listProjectFiles(root, opts, rel = '', depth = 0, acc = []) {
 function renderStackMap(stacks) {
   const manifestRows = [
     ['Go backend', 'backend/go.mod'],
+    ['Python backend', 'backend/pyproject.toml or backend/requirements.txt'],
     ['React web', 'web/package.json'],
     ['Flutter mobile', 'mobile/pubspec.yaml'],
+    ['Python root', 'pyproject.toml or requirements.txt'],
     ['Root package', 'package.json']
-  ].map(([label, file]) => `- ${label}: ${fs.existsSync(path.join(TARGET_DIR, file)) ? file : 'not detected'}`).join('\n')
+  ].map(([label, file]) => `- ${label}: ${manifestDetected(file) || 'not detected'}`).join('\n')
 
   return `# Stack Map
 
@@ -786,6 +792,7 @@ ${files.join('\n')}
 function renderTestingMap(stacks) {
   const commands = []
   if (stacks.includes('go')) commands.push('- Go: `cd backend && go test ./...`')
+  if (stacks.includes('python')) commands.push('- Python: `pytest` or `cd backend && pytest`')
   if (stacks.includes('react')) commands.push('- React: `cd web && npm test` or `cd web && npx vitest run`')
   if (stacks.includes('flutter')) commands.push('- Flutter: `cd mobile && flutter test`')
   if (commands.length === 0 && fs.existsSync(path.join(TARGET_DIR, 'package.json'))) {
@@ -799,6 +806,7 @@ ${commands.length ? commands.join('\n') : '- No test command detected yet.'}
 
 ## Test Locations
 - Go: files matching \`*_test.go\`
+- Python: files matching \`test_*.py\`, \`*_test.py\`, or \`tests/\`
 - React: \`web/src/**/*.test.*\`, \`web/test/\`
 - Flutter: \`mobile/test/\`
 
@@ -811,6 +819,7 @@ ${commands.length ? commands.join('\n') : '- No test command detected yet.'}
 function renderConventionsMap(stacks, files) {
   const notes = []
   if (stacks.includes('go')) notes.push('- Go code should follow `.eagle/rules/go/INDEX.md` and existing `backend/internal` boundaries.')
+  if (stacks.includes('python')) notes.push('- Python code should follow `.eagle/rules/python/INDEX.md`, existing package boundaries, type hints, and nearby test style.')
   if (stacks.includes('react')) notes.push('- React code should follow `.eagle/rules/react/INDEX.md` and existing feature/component boundaries.')
   if (stacks.includes('flutter')) notes.push('- Flutter code should follow `.eagle/rules/flutter/INDEX.md` and existing `lib/features` boundaries.')
   if (files.some(f => f.includes('migrations'))) notes.push('- Database changes should include migration files and rollback notes.')
@@ -827,6 +836,12 @@ ${notes.length ? notes.join('\n') : '- No strong conventions detected yet. Prefe
 - Capture reusable decisions in \`.eagle/knowledge/INDEX.md\`.
 - Capture pitfalls and failed attempts in \`.eagle/memory/INDEX.md\`.
 `
+}
+
+function manifestDetected(pattern) {
+  const candidates = pattern.split(/\s+or\s+/)
+  const found = candidates.find(file => fs.existsSync(path.join(TARGET_DIR, file)))
+  return found || null
 }
 
 function generateSkeletons(stacks, projectName) {

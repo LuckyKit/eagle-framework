@@ -7,14 +7,14 @@
 
 ## 这个仓库是什么
 
-Eagle Framework 是一套通过 Claude Code 插件 + npx 分发的全栈开发 Agent 框架，适用于 Go + React + Flutter 的 Monorepo 项目。
+Eagle Framework 是一套通过 Claude Code 插件 + npx 分发的全栈开发 Agent 框架，适用于 Go + Python + React + Flutter 项目。
 
 **你在这个仓库里的任务**通常是：
 - 更新/新增编码规范（`payload/rules-*`）
 - 更新/新增 Agent 定义（`plugin/agents/`）
 - 更新/新增 Skill 定义（`plugin/skills/`）
 - 维护组件蓝图（`payload/component-*`）
-- 维护 npx 脚手架入口和命令实现（`bin/eagle.js` + `cli/`）
+- 维护 Eagle CLI 入口和命令实现（`bin/eagle.js` + `cli/`）
 - 维护生命周期、代码库地图、质量门禁、长期记忆和配置系统
 
 ---
@@ -34,10 +34,11 @@ eagle-framework/
 │   └── scripts/              ← 钩子脚本
 ├── payload/
 │   ├── rules-go/             ← Go 编码规范
+│   ├── rules-python/         ← Python 编码规范
 │   ├── rules-react/          ← React 编码规范
 │   ├── rules-flutter/        ← Flutter 编码规范
 │   └── component-auth/       ← 组件蓝图（auth 等，含 spec/knowledge/三端 pattern）
-├── templates/                ← 项目骨架模板（.tpl 文件）
+├── templates/                ← 新项目模板（.tpl 文件，仅 new-project 场景使用）
 ├── .claude-plugin/
 │   └── marketplace.json      ← 插件市场清单
 └── package.json
@@ -49,7 +50,7 @@ eagle-framework/
 
 1. **每套规范都有 INDEX.md** — 修改规范文件后同步更新对应的 INDEX.md 快速查找表
 2. **格式参考现有文件** — `payload/rules-go/code-style.md` 是标准格式参考
-3. **保持三套规范平行** — Go/React/Flutter 的规范文件名一致（`code-style.md` / `project-structure.md` / `testing.md`）
+3. **保持规范平行** — Go/Python/React/Flutter 的规范文件名一致（`code-style.md` / `project-structure.md` / `testing.md`）
 
 ## 修改 Agent/Skill 时注意
 

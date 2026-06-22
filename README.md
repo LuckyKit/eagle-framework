@@ -1,6 +1,6 @@
 ﻿# 🦅 Eagle Framework
 
-> 一套全自动的全栈开发 Agent 框架，适用于 Go · React · Flutter 的 Monorepo 项目。
+> 一套全自动的全栈开发 Agent 框架，适用于 Go · Python · React · Flutter 项目。
 > 只有 `/discuss` 阶段需要人工确认，其余全程自动执行。
 
 ---
@@ -28,7 +28,7 @@ npx eagle install
 
 交互式询问安装级别：
 - **用户级** — 自动写入 `~/.claude/settings.json`，注册插件，全局生效，重启 Claude Code 即可用
-- **项目级** — 在当前目录初始化项目骨架（规范 + 组件蓝图 + 技术栈模板）
+- **项目级** — 在当前目录接入 Eagle 上下文（`.eagle/`、规范、组件蓝图、生命周期、代码库地图）
 
 或直接指定级别：
 
@@ -48,18 +48,19 @@ npx eagle install --user
 
 修改 `~/.claude/settings.json`，添加 `pluginMarketplaces` 和 `enabledPlugins`，重启 Claude Code 后 `/discuss`、`/dev`、`/fix`、`/refactor`、`/new-project` 全局可用。
 
-**第二步：初始化新项目（项目级，每个项目一次）**
+**第二步：接入业务项目（项目级，每个项目一次）**
 
 ```bash
-cd my-new-project
+cd my-project
 npx eagle install --project
 ```
 
-交互式选择技术栈，自动生成：
-- 项目目录结构（`backend/` / `web/` / `mobile/`）
-- 编码规范（`.eagle/rules/`）
-- 组件蓝图（`.eagle/components/`）
-- 项目骨架文件
+项目级安装不会询问项目名或技术栈，也不会生成业务目录。它只会：
+- 初始化 `.eagle/` 上下文
+- 复制通用编码规范（`.eagle/rules/`）
+- 复制组件蓝图（`.eagle/components/`）
+- 初始化生命周期、质量门禁、长期记忆
+- 自动扫描现有项目并生成 `.eagle/codebase/`
 
 ---
 
@@ -67,7 +68,7 @@ npx eagle install --project
 
 | 命令 | 说明 |
 |------|------|
-| `/new-project` | 项目脚手架：选技术栈 → 创建目录 → 复制规范 → 生成骨架 → git init |
+| `/new-project` | 从 0 创建新项目时使用：先澄清项目目标，再生成项目上下文和路线图 |
 | `/new-project sense` | 感知现有项目技术栈（只读） |
 | `/discuss <需求>` | **所有开发的统一入口**：需求澄清（含竞品图/交互设计）→ Phase + Wave 规划 → 并行执行 → 零交互 |
 | `/dev` | 快捷执行：已有 PLAN.md 时跳过澄清，直接全自动执行；无 PLAN.md 时自动转 /discuss |
@@ -106,11 +107,12 @@ eagle-framework/
 │
 ├── payload/                         ← npx 映射复制到项目 .eagle/ 的内容
 │   ├── rules-go/                   ← Go 编码规范（安装到 .eagle/rules/go/）
+│   ├── rules-python/               ← Python 编码规范（安装到 .eagle/rules/python/）
 │   ├── rules-react/                ← React 编码规范（安装到 .eagle/rules/react/）
 │   ├── rules-flutter/              ← Flutter 编码规范（安装到 .eagle/rules/flutter/）
 │   └── component-auth/             ← Auth 组件蓝图（安装到 .eagle/components/auth/）
 │
-├── templates/                      ← 项目骨架模板
+├── templates/                      ← 新项目模板（仅 new-project 场景使用）
 │   ├── go/                         ← go.mod / main.go / config.yaml
 │   ├── react/                      ← package.json / vite.config.ts
 │   └── flutter/                    ← pubspec.yaml
@@ -138,9 +140,7 @@ my-project/
 │   ├── memory/         ← 踩坑记忆（开发中自动积累）
 │   ├── phases/         ← 阶段级上下文和交付记录
 │   └── tasks/          ← 任务目录（PLAN.md / TEST.md / REVIEW.md）
-├── backend/            ← Go 后端
-├── web/                ← React Web
-└── mobile/             ← Flutter App
+└── ...                 ← 你的现有业务代码（Eagle 不强制目录结构）
 ```
 
 **两层分工**：
@@ -297,4 +297,4 @@ eagle map
 1. 更新规范：修改 `payload/rules-{stack}/` 下的文档，同步更新 `INDEX.md`
 2. 更新 Agent/Skill：修改 `plugin/agents/` 或 `plugin/skills/`
 3. 新增组件：在 `payload/component-{name}/` 下创建目录，包含 `spec.md` + `knowledge.md` + 三端 `pattern.md`
-4. 提交前测试 `node bin/eagle.js install --project` 在空目录的行为
+4. 提交前测试 `node bin/eagle.js install --project` 对现有项目无侵入接入的行为

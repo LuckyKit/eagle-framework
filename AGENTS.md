@@ -1,13 +1,13 @@
 # Eagle Framework Agent Guide
 
 > 这个仓库是 Eagle Framework 框架本身，不是使用 Eagle 生成的业务项目。
-> 在这里维护的是 Claude Code 插件、Agent/Skill 定义、规范文档、组件蓝图和 npx 脚手架。
+> 在这里维护的是 Claude Code 插件、Agent/Skill 定义、规范文档、组件蓝图和 Eagle CLI。
 
 ## 工作边界
 
 - 优先把修改限制在用户明确要求的范围内。
 - 不要在本仓库运行 `/discuss`、`/dev`、`/fix`、`/refactor` 等 Eagle Skills；这些命令是给安装了 Eagle 的目标项目使用的。
-- 不要把本仓库当作 Go/React/Flutter 业务 Monorepo 来开发业务功能。
+- 不要把本仓库当作 Go/Python/React/Flutter 业务项目来开发业务功能。
 - 不要删除或重写 `.eagle/knowledge/`、`.eagle/memory/`、`.eagle/tasks/` 这类运行期积累目录，除非用户明确要求。
 - 保留用户已有改动；遇到无关 dirty files 时不要回滚。
 
@@ -29,7 +29,7 @@ eagle-framework/
 │   ├── rules-react/                # React 编码规范
 │   ├── rules-flutter/              # Flutter 编码规范
 │   └── component-auth/             # 跨端组件蓝图
-├── templates/                      # 新项目骨架模板
+├── templates/                      # 新项目模板（仅 new-project 场景使用）
 ├── .claude-plugin/marketplace.json # 插件市场清单
 ├── README.md                       # 用户文档
 └── CLAUDE.md                       # Claude Code 专用说明
@@ -95,7 +95,7 @@ node bin/eagle.js sense
 - 文档或规范改动：检查 Markdown 渲染、链接和目录名称是否准确。
 - Agent/Skill 改动：检查 frontmatter、路径引用和名称引用是否一致。
 - CLI 改动：运行相关 `node bin/eagle.js ...` 命令，在临时目录中验证更稳妥。
-- 模板改动：确认生成后的 Go/React/Flutter 骨架文件名和变量替换正确。
+- 模板改动：确认 new-project 场景下生成文件名和变量替换正确。
 
 ## 提交前检查
 
