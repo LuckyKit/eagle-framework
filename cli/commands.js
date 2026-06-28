@@ -11,9 +11,11 @@ const FRAMEWORK_DIR       = path.join(__dirname, '..')
 const TARGET_DIR          = process.cwd()
 const USER_HOME           = os.homedir()
 const USER_CLAUDE_DIR     = path.join(USER_HOME, '.claude')
+const USER_CODEX_SKILLS_DIR = path.join(USER_HOME, '.agents', 'skills')
+const USER_CODEX_AGENTS_DIR = path.join(USER_HOME, '.codex', 'agents')
 const CLAUDE_SETTINGS     = path.join(USER_CLAUDE_DIR, 'settings.json')
 const PLUGIN_KEY          = 'eagle@eagle-framework'
-const DEFAULT_RUNTIME_NAMES = ['claude']
+const DEFAULT_RUNTIME_NAMES = ['claude', 'codex']
 
 const RUNTIME_ADAPTERS = {
   claude: {
@@ -24,6 +26,21 @@ const RUNTIME_ADAPTERS = {
     projectRoot: path.join(TARGET_DIR, '.claude'),
     install: installClaudeRuntime,
     remove: removeClaudeRuntime,
+  },
+  codex: {
+    name: 'codex',
+    label: 'Codex',
+    sourceDir: path.join(FRAMEWORK_DIR, 'plugin', 'codex'),
+    userRoot: {
+      skills: USER_CODEX_SKILLS_DIR,
+      agents: USER_CODEX_AGENTS_DIR,
+    },
+    projectRoot: {
+      skills: path.join(TARGET_DIR, '.agents', 'skills'),
+      agents: path.join(TARGET_DIR, '.codex', 'agents'),
+    },
+    install: installCodexRuntime,
+    remove: removeCodexRuntime,
   },
 }
 
@@ -389,6 +406,12 @@ function copyDirOverwrite(src, dst) {
   }
 }
 
+function listVisibleEntries(dir) {
+  if (!fs.existsSync(dir)) return []
+  return fs.readdirSync(dir, { withFileTypes: true })
+    .filter(entry => !entry.name.startsWith('.'))
+}
+
 function defaultRuntimeAdapters() {
   return DEFAULT_RUNTIME_NAMES.map(name => {
     const adapter = RUNTIME_ADAPTERS[name]
@@ -494,6 +517,70 @@ function removeClaudeRuntime(claudeRoot, scope) {
     path.join(claudeRoot, 'scripts'),
     path.join(claudeRoot, 'hooks'),
     claudeRoot
+  ], scope === 'project')
+}
+
+function installCodexRuntime(codexRoot, scope, adapter) {
+  const pluginDir = adapter.sourceDir
+  if (!fs.existsSync(pluginDir)) {
+    warn(`  runtime source not found: ${pluginDir}`)
+    return
+  }
+
+  const skillsSrc = path.join(pluginDir, 'skills')
+  const agentsSrc = path.join(pluginDir, 'agents')
+  const skillsDst = codexRoot.skills
+  const agentsDst = codexRoot.agents
+
+  mkdirSafe(skillsDst)
+  mkdirSafe(agentsDst)
+
+  let copiedSkills = 0
+  for (const entry of listVisibleEntries(skillsSrc)) {
+    if (!entry.isDirectory()) continue
+    copyDirOverwrite(path.join(skillsSrc, entry.name), path.join(skillsDst, entry.name))
+    copiedSkills++
+  }
+
+  let copiedAgents = 0
+  for (const entry of listVisibleEntries(agentsSrc)) {
+    if (!entry.isFile() || !entry.name.endsWith('.toml')) continue
+    fs.copyFileSync(path.join(agentsSrc, entry.name), path.join(agentsDst, entry.name))
+    copiedAgents++
+  }
+
+  info(`  skills → ${path.relative(TARGET_DIR, skillsDst) || skillsDst}`)
+  info(`  agents → ${path.relative(TARGET_DIR, agentsDst) || agentsDst}`)
+  if (copiedSkills === 0 && copiedAgents === 0) {
+    warn('  Codex runtime source is present but has no converted skills or agents yet')
+  }
+}
+
+function removeCodexRuntime(codexRoot, scope) {
+  const skillsDir = codexRoot.skills
+  const agentsDir = codexRoot.agents
+
+  if (fs.existsSync(skillsDir)) {
+    for (const entry of fs.readdirSync(skillsDir, { withFileTypes: true })) {
+      if (entry.isDirectory() && entry.name.startsWith('eagle-')) {
+        removeDirSafe(path.join(skillsDir, entry.name))
+      }
+    }
+  }
+
+  if (fs.existsSync(agentsDir)) {
+    for (const entry of fs.readdirSync(agentsDir, { withFileTypes: true })) {
+      if (entry.isFile() && entry.name.startsWith('eagle-') && entry.name.endsWith('.toml')) {
+        removeFileSafe(path.join(agentsDir, entry.name))
+      }
+    }
+  }
+
+  pruneEmptyDirs([
+    skillsDir,
+    path.dirname(skillsDir),
+    agentsDir,
+    path.dirname(agentsDir)
   ], scope === 'project')
 }
 

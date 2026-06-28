@@ -32,7 +32,7 @@ node ./bin/eagle.js --help
 
 ## 2. 安装用户级 Eagle
 
-用户级安装只需要做一次。当前默认 runtime 是 Claude Code，会把 Eagle runtime 复制到 `~/.claude/`。
+用户级安装只需要做一次。当前默认 runtime 是 Claude Code + Codex，会把 Eagle runtime 分发到对应客户端目录。
 
 ```bash
 cd eagle-framework/
@@ -56,7 +56,7 @@ cd /path/to/your-project
 eagle install --project
 ```
 
-这个命令会在当前项目里生成默认 runtime 目录和 `.eagle/`：当前默认的 `.claude/` 保存项目级 skills / agents / hooks / scripts，`.eagle/` 保存通用规范、组件蓝图和基础上下文，并自动扫描现有技术栈。它不会询问项目名或技术栈，也不会生成业务目录。
+这个命令会在当前项目里生成默认 runtime 目录和 `.eagle/`：Claude 使用 `.claude/`，Codex 使用 `.agents/skills/` 和 `.codex/agents/`，`.eagle/` 保存通用规范、组件蓝图和基础上下文，并自动扫描现有技术栈。它不会询问项目名或技术栈，也不会生成业务目录。
 
 如果没有使用 `npm link`：
 

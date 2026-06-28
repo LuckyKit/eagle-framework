@@ -20,13 +20,13 @@ eagle-framework/
 ├── cli/
 │   └── commands.js                 # install / uninstall / sense / map
 ├── plugin/                         # runtime 分发源
-│   ├── claude/                     # Claude Code runtime（当前默认启用）
+│   ├── claude/                     # Claude Code runtime
 │   │   ├── .claude-plugin/         # Claude 插件市场清单
 │   │   ├── agents/                 # Claude Agent 定义
 │   │   ├── skills/                 # Claude Skill 定义
 │   │   ├── hooks/                  # SessionStart 等钩子
 │   │   └── scripts/                # 钩子脚本
-│   └── codex/                      # Codex runtime 预留目录
+│   └── codex/                      # Codex runtime
 │       ├── .codex-plugin/
 │       ├── agents/
 │       └── skills/
@@ -67,7 +67,7 @@ node bin/eagle.js sense
 
 - Claude Agent 文件路径：`plugin/claude/agents/{name}.md`。
 - Claude Skill 文件路径：`plugin/claude/skills/{name}/SKILL.md`。
-- Codex runtime 预留路径：`plugin/codex/agents/` 和 `plugin/codex/skills/`，不要把 Claude 格式文件直接复制过去冒充 Codex 格式。
+- Codex runtime 路径：`plugin/codex/agents/` 和 `plugin/codex/skills/`，不要把 Claude 格式文件直接复制过去冒充 Codex 格式。
 - Agent frontmatter 至少包含 `name` 和 `description`。
 - Skill 中引用 Agent 时使用 Agent frontmatter 的 `name` 字段值，例如 `eagle-analyst`。
 - 修改 Agent/Skill 后，检查相关命令说明、README 表格和插件清单是否也需要同步。

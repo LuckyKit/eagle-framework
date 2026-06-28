@@ -46,7 +46,7 @@ npx eagle install --all       # 两层都安装
 npx eagle install --user
 ```
 
-当前默认 runtime 是 Claude Code。该命令会复制 `plugin/claude/agents`、`plugin/claude/skills`、`plugin/claude/hooks`、`plugin/claude/scripts` 到 `~/.claude/`，并写入 Eagle 的 SessionStart hook。重启 Claude Code 后，`eagle-*` skills 和 agents 全局可用。
+当前默认 runtime 是 Claude Code + Codex。Claude 会复制 `plugin/claude/agents`、`plugin/claude/skills`、`plugin/claude/hooks`、`plugin/claude/scripts` 到 `~/.claude/`，并写入 Eagle 的 SessionStart hook；Codex 会使用 `~/.agents/skills` 和 `~/.codex/agents`。重启对应客户端后，Eagle skills 和 agents 全局可用。
 
 **第二步：接入业务项目（项目级，每个项目一次）**
 
@@ -102,14 +102,14 @@ eagle-framework/
 │
 ├── plugin/                         ← runtime 分发源，可扩展多个客户端
 │   ├── README.md
-│   ├── claude/                     ← Claude Code runtime（当前默认启用）
+│   ├── claude/                     ← Claude Code runtime
 │   │   ├── .claude-plugin/
 │   │   │   └── marketplace.json
 │   │   ├── agents/                 ← analyst / coder / tester / reviewer / knowledge-writer / debugger
 │   │   ├── skills/                 ← discuss / dev / new-project / fix / refactor / gate / memory ...
 │   │   ├── hooks/hooks.json        ← SessionStart 自动检测项目类型
 │   │   └── scripts/detect_project.py
-│   └── codex/                      ← Codex runtime 预留目录
+│   └── codex/                      ← Codex runtime
 │       ├── .codex-plugin/
 │       ├── agents/
 │       └── skills/
@@ -159,7 +159,7 @@ my-project/
 ```
 
 **两层分工**：
-- **Runtime 层**（全局或项目级）：Skills + Agents + Hooks — 按客户端分发，当前默认安装 Claude Code runtime
+- **Runtime 层**（全局或项目级）：Skills + Agents + Hooks — 按客户端分发，当前默认安装 Claude Code + Codex runtime
 - **项目层**（私有）：rules + components + knowledge + memory — 项目启动时 npx 复制，各自独立
 
 ---

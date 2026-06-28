@@ -7,7 +7,7 @@
 
 ## 这个仓库是什么
 
-Eagle Framework 是一套通过 runtime adapters + npx 分发的全栈开发 Agent 框架，适用于 Go + Python + Next.js + Flutter 项目。当前默认 runtime 是 Claude Code。
+Eagle Framework 是一套通过 runtime adapters + npx 分发的全栈开发 Agent 框架，适用于 Go + Python + Next.js + Flutter 项目。当前默认 runtime 是 Claude Code + Codex。
 
 **你在这个仓库里的任务**通常是：
 - 更新/新增编码规范（`payload/rules-*`）
@@ -28,14 +28,14 @@ eagle-framework/
 ├── cli/
 │   └── commands.js           ← install / uninstall / sense / map
 ├── plugin/                   ← runtime 分发源
-│   ├── claude/               ← Claude Code runtime（当前默认启用）
+│   ├── claude/               ← Claude Code runtime
 │   │   ├── .claude-plugin/
 │   │   │   └── marketplace.json
 │   │   ├── agents/           ← Agent 定义（analyst/coder/tester/reviewer/knowledge-writer/debugger）
 │   │   ├── skills/           ← Skill 定义（discuss/dev/new-project/fix/refactor）
 │   │   ├── hooks/hooks.json  ← SessionStart 钩子
 │   │   └── scripts/          ← 钩子脚本
-│   └── codex/                ← Codex runtime 预留目录
+│   └── codex/                ← Codex runtime
 │       ├── .codex-plugin/
 │       ├── agents/
 │       └── skills/
