@@ -7,7 +7,7 @@
 
 ## 这个仓库是什么
 
-Eagle Framework 是一套通过 Claude Code 插件 + npx 分发的全栈开发 Agent 框架，适用于 Go + Python + React + Flutter 项目。
+Eagle Framework 是一套通过 Claude Code 插件 + npx 分发的全栈开发 Agent 框架，适用于 Go + Next.js + Flutter 项目。
 
 **你在这个仓库里的任务**通常是：
 - 更新/新增编码规范（`payload/rules-*`）
@@ -34,8 +34,7 @@ eagle-framework/
 │   └── scripts/              ← 钩子脚本
 ├── payload/
 │   ├── rules-go/             ← Go 编码规范
-│   ├── rules-python/         ← Python 编码规范
-│   ├── rules-react/          ← React 编码规范
+│   ├── rules-nextjs/         ← Next.js 编码规范
 │   ├── rules-flutter/        ← Flutter 编码规范
 │   └── component-auth/       ← 组件蓝图（auth 等，含 spec/knowledge/三端 pattern）
 ├── templates/                ← 新项目模板（.tpl 文件，仅 new-project 场景使用）
@@ -50,7 +49,7 @@ eagle-framework/
 
 1. **每套规范都有 INDEX.md** — 修改规范文件后同步更新对应的 INDEX.md 快速查找表
 2. **格式参考现有文件** — `payload/rules-go/code-style.md` 是标准格式参考
-3. **保持规范平行** — Go/Python/React/Flutter 的规范文件名一致（`code-style.md` / `project-structure.md` / `testing.md`）
+3. **保持规范平行** — Go/Next.js/Flutter 的规范文件名一致（`code-style.md` / `project-structure.md` / `testing.md`）
 
 ## 修改 Agent/Skill 时注意
 
@@ -62,7 +61,7 @@ eagle-framework/
 ## 修改组件蓝图时注意
 
 1. **组件 = 文档不是代码** — 描述模式和决策，不提供可直接运行的代码
-2. **三端必须都覆盖** — `go/pattern.md` + `react/pattern.md` + `flutter/pattern.md`
+2. **三端必须都覆盖** — `go/pattern.md` + `nextjs/pattern.md` + `flutter/pattern.md`
 3. **spec.md 是接口契约** — 后端 API 定义在这里，前端/移动端依此实现
 
 ## 修改生命周期能力时注意

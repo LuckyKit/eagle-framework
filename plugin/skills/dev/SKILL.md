@@ -26,7 +26,7 @@
   "type": "feature",
   "status": "in_progress",
   "stage": "coder",
-  "stacks": ["go", "react"],
+  "stacks": ["go", "nextjs"],
   "currentWave": "1.2",
   "phases": [
     {
@@ -198,10 +198,10 @@ tester FAIL → 调用 /eagle:coder fix 模式 → 重试一次 → 再 FAIL →
 | stacks | 行为 |
 |--------|------|
 | `["go"]` | 只实现后端 |
-| `["react"]` | 只实现 Web 前端 |
+| `["nextjs"]` | 只实现 Web 前端 |
 | `["flutter"]` | 只实现 App |
-| `["go", "react"]` | 后端 + Web，API 先行 |
-| `["go", "react", "flutter"]` | 三端，后端优先 |
+| `["go", "nextjs"]` | 后端 + Web，API 先行 |
+| `["go", "nextjs", "flutter"]` | 三端，后端优先 |
 
 每个 Wave 独立标注涉及的栈，coder 只实现该 Wave 的栈。
 

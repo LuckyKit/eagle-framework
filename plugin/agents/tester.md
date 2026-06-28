@@ -27,8 +27,8 @@ description: "测试执行专家 - 按测试用例运行测试，分析结果，
 # Go
 cd backend && go test ./... -race -coverprofile=coverage.out -v
 
-# React（Vitest）
-cd web && npm test -- --reporter=verbose
+# Next.js（Jest）
+cd web && npm test -- --verbose
 
 # Flutter
 cd mobile && flutter test --coverage
@@ -63,7 +63,7 @@ cd mobile && flutter test --coverage
 # 测试报告 - {slug}
 
 > 执行时间：{YYYY-MM-DD HH:mm}
-> 技术栈：{Go / React / Flutter}
+> 技术栈：{Go / Next.js / Flutter}
 
 ## 结果摘要
 

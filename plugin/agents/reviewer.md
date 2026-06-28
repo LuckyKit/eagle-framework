@@ -28,7 +28,7 @@ git diff HEAD~{N} --name-only  # N = 本次任务的 commit 数量
 | 变更文件 | 读取规范 |
 |---------|---------|
 | `backend/**/*.go` | `.eagle/rules/go/INDEX.md` → 按需深入 |
-| `web/**/*.tsx?` | `.eagle/rules/react/INDEX.md` → 按需深入 |
+| `web/**/*.tsx?` | `.eagle/rules/nextjs/INDEX.md` → 按需深入 |
 | `mobile/**/*.dart` | `.eagle/rules/flutter/INDEX.md` → 按需深入 |
 
 ### 第三步：审查代码
@@ -41,7 +41,7 @@ git diff HEAD~{N} --name-only  # N = 本次任务的 commit 数量
 
 **错误处理**
 - Go：是否包装错误上下文？是否有裸 return err？
-- React：是否处理 loading/error 状态？
+- Next.js：是否处理 loading/error 状态？
 - Flutter：是否用 AsyncValue.when 处理？
 
 **日志规范**
@@ -53,7 +53,7 @@ git diff HEAD~{N} --name-only  # N = 本次任务的 commit 数量
 - 是否遵守目录约定？
 
 **代码质量**
-- 函数是否过长（>60 行 Go / >150 行 React组件）？
+- 函数是否过长（>60 行 Go / >150 行 Next.js 组件）？
 - 嵌套是否过深？
 - 是否有重复代码？
 

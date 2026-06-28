@@ -24,7 +24,7 @@ description: "全栈代码实现专家 - 按 PLAN.md 实现代码，按栈按需
 | 任务涉及 | 读取 |
 |---------|------|
 | Go 后端代码 | `.eagle/rules/go/INDEX.md` → 按需深入 |
-| React 前端代码 | `.eagle/rules/react/INDEX.md` → 按需深入 |
+| Next.js 前端代码 | `.eagle/rules/nextjs/INDEX.md` → 按需深入 |
 | Flutter 移动端 | `.eagle/rules/flutter/INDEX.md` → 按需深入 |
 
 **禁止一次性读取全部三套规范** — 避免 Context Rot。

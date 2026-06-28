@@ -1,6 +1,6 @@
 ﻿# 🦅 Eagle Framework
 
-> 一套全自动的全栈开发 Agent 框架，适用于 Go · Python · React · Flutter 项目。
+> 一套全自动的全栈开发 Agent 框架，适用于 Go · Next.js · Flutter 项目。
 > 只有 `/discuss` 阶段需要人工确认，其余全程自动执行。
 
 ---
@@ -108,14 +108,13 @@ eagle-framework/
 │
 ├── payload/                         ← npx 映射复制到项目 .eagle/ 的内容
 │   ├── rules-go/                   ← Go 编码规范（安装到 .eagle/rules/go/）
-│   ├── rules-python/               ← Python 编码规范（安装到 .eagle/rules/python/）
-│   ├── rules-react/                ← React 编码规范（安装到 .eagle/rules/react/）
+│   ├── rules-nextjs/               ← Next.js 编码规范（安装到 .eagle/rules/nextjs/）
 │   ├── rules-flutter/              ← Flutter 编码规范（安装到 .eagle/rules/flutter/）
 │   └── component-auth/             ← Auth 组件蓝图（安装到 .eagle/components/auth/）
 │
 ├── templates/                      ← 新项目模板（仅 new-project 场景使用）
 │   ├── go/                         ← go.mod / main.go / config.yaml
-│   ├── react/                      ← package.json / vite.config.ts
+│   ├── nextjs/                     ← package.json / next.config.ts
 │   └── flutter/                    ← pubspec.yaml
 │
 ├── .claude-plugin/marketplace.json ← 插件市场清单
@@ -187,7 +186,7 @@ Eagle 借鉴 GSD 的结构，但默认只保留快速迭代最需要的部分：
 ├── spec.md          ← 接口契约（API 定义、数据结构、错误语义）
 ├── knowledge.md     ← 设计决策、踩坑、注意事项
 ├── go/pattern.md    ← Go 后端实现模式
-├── react/pattern.md ← React Web 实现模式
+├── nextjs/pattern.md ← Next.js Web 实现模式
 └── flutter/pattern.md ← Flutter 移动端实现模式
 ```
 
@@ -202,7 +201,7 @@ Eagle 借鉴 GSD 的结构，但默认只保留快速迭代最需要的部分：
 | 层次 | 技术 |
 |------|------|
 | Go 后端 | Gin + sqlx + slog + testify |
-| React Web | Vite + TypeScript + Zustand + TanStack Query + Tailwind + Vitest + RTL |
+| Next.js Web | Next.js 14+ (App Router) + TypeScript + Zustand + TanStack Query + Tailwind + Jest + RTL |
 | Flutter | Riverpod + GoRouter + Dio + flutter_secure_storage + mocktail |
 
 ---

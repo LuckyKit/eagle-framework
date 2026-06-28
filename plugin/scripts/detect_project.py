@@ -12,20 +12,13 @@ def detect_stack(project_root: str) -> list[str]:
     stacks = []
     if os.path.exists(os.path.join(project_root, "backend", "go.mod")):
         stacks.append("go")
-    python_markers = [
-        "backend/pyproject.toml",
-        "backend/requirements.txt",
-        "backend/poetry.lock",
-        "backend/Pipfile",
-        "pyproject.toml",
-        "requirements.txt",
-        "poetry.lock",
-        "Pipfile",
+    nextjs_markers = [
+        "web/next.config.ts",
+        "web/next.config.js",
+        "web/next.config.mjs",
     ]
-    if any(os.path.exists(os.path.join(project_root, marker)) for marker in python_markers):
-        stacks.append("python")
-    if os.path.exists(os.path.join(project_root, "web", "package.json")):
-        stacks.append("react")
+    if any(os.path.exists(os.path.join(project_root, marker)) for marker in nextjs_markers):
+        stacks.append("nextjs")
     if os.path.exists(os.path.join(project_root, "mobile", "pubspec.yaml")):
         stacks.append("flutter")
     return stacks
