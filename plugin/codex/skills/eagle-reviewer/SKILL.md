@@ -1,4 +1,15 @@
-﻿# /eagle:reviewer — 代码审查
+---
+name: eagle-reviewer
+description: "原子 Skill。只负责一件事：审查本次任务的代码变更，输出 REVIEW.md。 Use this Codex skill when the user asks for the matching Eagle workflow or explicitly invokes $eagle-reviewer."
+---
+
+# eagle-reviewer
+
+<!-- Generated from plugin/claude. Run `npm run sync:codex` after editing Claude skills. -->
+
+Codex invocation: `$eagle-reviewer`. Legacy Claude slash-command examples are preserved below for workflow compatibility.
+
+# /eagle:reviewer — 代码审查
 
 > 原子 Skill。只负责一件事：审查本次任务的代码变更，输出 REVIEW.md。
 > 不改代码，不测试。
@@ -8,7 +19,7 @@
 ## 调用方式
 
 ```
-/eagle:tester {slug}   ← 用户直接调用（审查该任务所有变更）
+/eagle:reviewer {slug} ← 用户直接调用（审查该任务所有变更）
 由编排 Skill 调用
 ```
 

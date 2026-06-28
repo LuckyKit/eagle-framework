@@ -1,7 +1,7 @@
 # Eagle Framework Agent Guide
 
 > 这个仓库是 Eagle Framework 框架本身，不是使用 Eagle 生成的业务项目。
-> 在这里维护的是 Claude Code 插件、Agent/Skill 定义、规范文档、组件蓝图和 Eagle CLI。
+> 在这里维护的是 Eagle runtime 分发源、Agent/Skill 定义、规范文档、组件蓝图和 Eagle CLI。
 
 ## 工作边界
 
@@ -19,11 +19,17 @@ eagle-framework/
 │   └── eagle.js                    # CLI 入口
 ├── cli/
 │   └── commands.js                 # install / uninstall / sense / map
-├── plugin/                         # Claude Code 插件主体
-│   ├── agents/                     # Agent 定义
-│   ├── skills/                     # Skill 定义
-│   ├── hooks/                      # SessionStart 等钩子
-│   └── scripts/                    # 钩子脚本
+├── plugin/                         # runtime 分发源
+│   ├── claude/                     # Claude Code runtime
+│   │   ├── .claude-plugin/         # Claude 插件市场清单
+│   │   ├── agents/                 # Claude Agent 定义
+│   │   ├── skills/                 # Claude Skill 定义
+│   │   ├── hooks/                  # SessionStart 等钩子
+│   │   └── scripts/                # 钩子脚本
+│   └── codex/                      # Codex runtime
+│       ├── .codex-plugin/
+│       ├── agents/
+│       └── skills/
 ├── payload/
 │   ├── rules-go/                   # Go 编码规范
 │   ├── rules-python/               # Python 编码规范
@@ -31,7 +37,6 @@ eagle-framework/
 │   ├── rules-flutter/              # Flutter 编码规范
 │   └── component-auth/             # 跨端组件蓝图
 ├── templates/                      # 新项目模板（仅 new-project 场景使用）
-├── .claude-plugin/marketplace.json # 插件市场清单
 ├── README.md                       # 用户文档
 └── CLAUDE.md                       # Claude Code 专用说明
 ```
@@ -60,8 +65,10 @@ node bin/eagle.js sense
 
 ## 修改 Agent 和 Skill
 
-- Agent 文件路径：`plugin/agents/{name}.md`。
-- Skill 文件路径：`plugin/skills/{name}/SKILL.md`。
+- Claude Agent 文件路径：`plugin/claude/agents/{name}.md`。
+- Claude Skill 文件路径：`plugin/claude/skills/{name}/SKILL.md`。
+- Codex runtime 路径：`plugin/codex/agents/` 和 `plugin/codex/skills/`，由 `npm run sync:codex` 从 Claude 源生成。
+- 修改 Claude Agent/Skill 后运行 `npm run sync:codex`，不要手工双写两套 runtime。
 - Agent frontmatter 至少包含 `name` 和 `description`。
 - Skill 中引用 Agent 时使用 Agent frontmatter 的 `name` 字段值，例如 `eagle-analyst`。
 - 修改 Agent/Skill 后，检查相关命令说明、README 表格和插件清单是否也需要同步。

@@ -1,6 +1,6 @@
 ﻿# 🦅 Eagle Framework
 
-> 一套全自动的全栈开发 Agent 框架，适用于 Go · Python · Next.js · Flutter 项目。
+> 一套可分发到不同 AI 编程客户端的全栈开发 Agent 框架，适用于 Go · Python · Next.js · Flutter 项目。
 > 只有 `/discuss` 阶段需要人工确认，其余全程自动执行。
 
 ---
@@ -27,14 +27,20 @@ npx eagle install
 ```
 
 交互式询问安装级别：
-- **用户级** — 复制 Eagle skills / agents / hooks / scripts 到 `~/.claude/`，全局生效
-- **项目级** — 复制 Eagle skills / agents / hooks / scripts 到当前项目 `.claude/`，并初始化 `.eagle/`
+- **用户级** — 复制所选 runtime 的 Eagle skills / agents / hooks / scripts 到用户目录，全局生效
+- **项目级** — 复制所选 runtime 的 Eagle skills / agents / hooks / scripts 到当前项目，并初始化 `.eagle/`
+
+安装级别确定后会继续询问 runtime，可多选：
+- **Claude Code** — 安装到 `.claude/` 或 `~/.claude/`
+- **Codex** — 安装到 `.agents/skills/` + `.codex/agents/`，用户级为 `~/.agents/skills/` + `~/.codex/agents/`
 
 或直接指定级别：
 
 ```bash
-npx eagle install --user      # 仅安装到 ~/.claude/
+npx eagle install --user      # 仅安装用户级 runtime
 npx eagle install --project   # 仅安装到当前项目
+npx eagle install --project --codex
+npx eagle install --project --claude --codex
 npx eagle install --all       # 两层都安装
 ```
 
@@ -46,7 +52,7 @@ npx eagle install --all       # 两层都安装
 npx eagle install --user
 ```
 
-复制 `plugin/agents`、`plugin/skills`、`plugin/hooks`、`plugin/scripts` 到 `~/.claude/`，并写入 Eagle 的 SessionStart hook。重启 Claude Code 后，`eagle-*` skills 和 agents 全局可用。
+安装时会选择 runtime。Claude 会复制 `plugin/claude/agents`、`plugin/claude/skills`、`plugin/claude/hooks`、`plugin/claude/scripts` 到 `~/.claude/`，并写入 Eagle 的 SessionStart hook；Codex 会先自动同步 `plugin/codex/`，再安装到 `~/.agents/skills` 和 `~/.codex/agents`。重启对应客户端后，Eagle skills 和 agents 全局可用。
 
 **第二步：接入业务项目（项目级，每个项目一次）**
 
@@ -56,7 +62,7 @@ npx eagle install --project
 ```
 
 项目级安装不会询问项目名或技术栈，也不会生成业务目录。它只会：
-- 复制 Eagle skills / agents / hooks / scripts 到当前项目 `.claude/`
+- 询问要安装的 runtime，并复制对应 Eagle skills / agents / hooks / scripts 到当前项目
 - 初始化 `.eagle/` 上下文
 - 复制通用编码规范（`.eagle/rules/`）
 - 复制组件蓝图（`.eagle/components/`）
@@ -100,11 +106,19 @@ eagle-framework/
 ├── cli/
 │   └── commands.js                 ← install / uninstall / sense / map 实现
 │
-├── plugin/                         ← Claude Code 插件（全局，所有项目共享）
-│   ├── agents/                     ← analyst / coder / tester / reviewer / knowledge-writer / debugger
-│   ├── skills/                     ← discuss / dev / new-project / fix / refactor / gate / memory ...
-│   ├── hooks/hooks.json            ← SessionStart 自动检测项目类型
-│   └── scripts/detect_project.py
+├── plugin/                         ← runtime 分发源，可扩展多个客户端
+│   ├── README.md
+│   ├── claude/                     ← Claude Code runtime
+│   │   ├── .claude-plugin/
+│   │   │   └── marketplace.json
+│   │   ├── agents/                 ← analyst / coder / tester / reviewer / knowledge-writer / debugger
+│   │   ├── skills/                 ← discuss / dev / new-project / fix / refactor / gate / memory ...
+│   │   ├── hooks/hooks.json        ← SessionStart 自动检测项目类型
+│   │   └── scripts/detect_project.py
+│   └── codex/                      ← Codex runtime
+│       ├── .codex-plugin/
+│       ├── agents/
+│       └── skills/
 │
 ├── payload/                         ← npx 映射复制到项目 .eagle/ 的内容
 │   ├── rules-go/                   ← Go 编码规范（安装到 .eagle/rules/go/）
@@ -119,7 +133,6 @@ eagle-framework/
 │   ├── nextjs/                     ← package.json / next.config.ts
 │   └── flutter/                    ← pubspec.yaml
 │
-├── .claude-plugin/marketplace.json ← 插件市场清单
 └── package.json
 ```
 
@@ -152,7 +165,7 @@ my-project/
 ```
 
 **两层分工**：
-- **插件层**（全局）：Skills + Agents + Hooks — 所有项目共享，Claude Code 重启自动更新
+- **Runtime 层**（全局或项目级）：Skills + Agents + Hooks — 按客户端分发，当前默认安装 Claude Code + Codex runtime
 - **项目层**（私有）：rules + components + knowledge + memory — 项目启动时 npx 复制，各自独立
 
 ---
@@ -169,7 +182,7 @@ Eagle 借鉴 GSD 的结构，但默认只保留快速迭代最需要的部分：
 - 配置系统：`.eagle/config.json`
 
 **暂缓，不默认实现**
-- 多运行时适配（Codex / Gemini / Cursor / Windsurf 等）
+- 完整 Codex / Gemini / Cursor / Windsurf runtime 内容转换
 - 复杂 worktree / 多工作区隔离
 - 自动 PR 创建和发布流水线
 - 大规模命令路由器和 capability 市场
@@ -223,8 +236,10 @@ npx eagle uninstall
 交互式询问卸载级别，或直接指定：
 
 ```bash
-npx eagle uninstall --user      # 删除 ~/.claude/ 中 Eagle runtime
-npx eagle uninstall --project   # 删除当前项目 .claude/ 中 Eagle runtime 和 .eagle/
+npx eagle uninstall --user      # 删除用户级 Eagle runtime
+npx eagle uninstall --project   # 删除当前项目 Eagle runtime 和 .eagle/
+npx eagle uninstall --project --codex
+npx eagle uninstall --project --claude --codex
 npx eagle uninstall --all       # 彻底卸载两层
 ```
 
@@ -304,6 +319,8 @@ eagle map
 ## 贡献
 
 1. 更新规范：修改 `payload/rules-{stack}/` 下的文档，同步更新 `INDEX.md`
-2. 更新 Agent/Skill：修改 `plugin/agents/` 或 `plugin/skills/`
-3. 新增组件：在 `payload/component-{name}/` 下创建目录，包含 `spec.md` + `knowledge.md` + 三端 `pattern.md`
-4. 提交前测试 `node bin/eagle.js install --project` 对现有项目无侵入接入的行为
+2. 更新 Claude Agent/Skill：修改 `plugin/claude/agents/` 或 `plugin/claude/skills/`
+3. 同步 Codex runtime：运行 `npm run sync:codex`，生成 `plugin/codex/skills/` 和 `plugin/codex/agents/`
+4. 新增 runtime：在 `plugin/{runtime}/` 下建立独立的分发源，并在 `cli/commands.js` 中新增 runtime adapter
+5. 新增组件：在 `payload/component-{name}/` 下创建目录，包含 `spec.md` + `knowledge.md` + 三端 `pattern.md`
+6. 提交前测试 `node bin/eagle.js install --project` 对现有项目无侵入接入的行为

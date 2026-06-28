@@ -1,0 +1,4 @@
+interface:
+  display_name: "eagle fix — Bug 修复（编排）"
+  short_description: "编排 Skill。Bug 修复专用流程，在 /eagle:dev 基础上增加 bug 专项处理。"
+  default_prompt: "Use $eagle-fix to run the matching Eagle workflow."

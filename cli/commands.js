@@ -4,14 +4,45 @@
 const fs   = require('fs')
 const path = require('path')
 const os   = require('os')
-const { execSync } = require('child_process')
+const { execFileSync, execSync } = require('child_process')
 const readline = require('readline')
 
 const FRAMEWORK_DIR       = path.join(__dirname, '..')
 const TARGET_DIR          = process.cwd()
-const USER_CLAUDE_DIR     = path.join(os.homedir(), '.claude')
-const CLAUDE_SETTINGS     = path.join(os.homedir(), '.claude', 'settings.json')
+const USER_HOME           = os.homedir()
+const USER_CLAUDE_DIR     = path.join(USER_HOME, '.claude')
+const USER_CODEX_SKILLS_DIR = path.join(USER_HOME, '.agents', 'skills')
+const USER_CODEX_AGENTS_DIR = path.join(USER_HOME, '.codex', 'agents')
+const CLAUDE_SETTINGS     = path.join(USER_CLAUDE_DIR, 'settings.json')
 const PLUGIN_KEY          = 'eagle@eagle-framework'
+const DEFAULT_RUNTIME_NAMES = ['claude', 'codex']
+
+const RUNTIME_ADAPTERS = {
+  claude: {
+    name: 'claude',
+    label: 'Claude Code',
+    sourceDir: path.join(FRAMEWORK_DIR, 'plugin', 'claude'),
+    userRoot: USER_CLAUDE_DIR,
+    projectRoot: path.join(TARGET_DIR, '.claude'),
+    install: installClaudeRuntime,
+    remove: removeClaudeRuntime,
+  },
+  codex: {
+    name: 'codex',
+    label: 'Codex',
+    sourceDir: path.join(FRAMEWORK_DIR, 'plugin', 'codex'),
+    userRoot: {
+      skills: USER_CODEX_SKILLS_DIR,
+      agents: USER_CODEX_AGENTS_DIR,
+    },
+    projectRoot: {
+      skills: path.join(TARGET_DIR, '.agents', 'skills'),
+      agents: path.join(TARGET_DIR, '.codex', 'agents'),
+    },
+    install: installCodexRuntime,
+    remove: removeCodexRuntime,
+  },
+}
 
 // ─── 颜色 ────────────────────────────────────────────────────────────────────
 
@@ -39,11 +70,18 @@ async function main() {
   const hasUser    = flags.includes('--user')    || flags.includes('-u')
   const hasProject = flags.includes('--project') || flags.includes('-p')
   const hasAll     = flags.includes('--all')     || flags.includes('-a')
+  const hasClaude  = flags.includes('--claude')
+  const hasCodex   = flags.includes('--codex')
+  const runtimeNames = []
+  if (hasClaude) runtimeNames.push('claude')
+  if (hasCodex)  runtimeNames.push('codex')
 
   // --all 等价于同时指定 --user --project
   const opts = {
     user:    hasUser || hasAll,
     project: hasProject || hasAll,
+    runtimeNames,
+    runtimeInteractive: runtimeNames.length === 0,
     // 没有任何 flag → 交互式询问
     interactive: !hasUser && !hasProject && !hasAll,
   }
@@ -68,8 +106,8 @@ async function installCommand(opts) {
 
   if (opts.interactive) {
     log('选择安装级别（可多选，空格分隔）：')
-    log('  [1] 用户级  — 安装 skills/agents 到 ~/.claude/')
-    log('  [2] 项目级  — 安装 skills/agents 到当前项目 .claude/，并初始化 .eagle/')
+    log('  [1] 用户级  — 安装 runtime skills/agents 到用户目录')
+    log('  [2] 项目级  — 安装 runtime skills/agents 到当前项目，并初始化 .eagle/')
     log('  [3] 全部    — 同时安装两层')
     log('')
     const input = await ask('输入编号 (例: 1 2 或 3): ')
@@ -84,24 +122,29 @@ async function installCommand(opts) {
     log('')
   }
 
-  if (user)    await installUser()
-  if (project) await installProject()
+  const runtimeNames = await resolveRuntimeNames(opts, '安装')
+  if (!runtimeNames) return
+
+  syncRuntimeSources(runtimeNames)
+
+  if (user)    await installUser(runtimeNames)
+  if (project) await installProject(runtimeNames)
 }
 
 // ── 用户级安装：写入 ~/.claude/ ───────────────────────────────────────────────
 
-async function installUser() {
+async function installUser(runtimeNames) {
   log(`${c.bold}[用户级] 安装 Eagle skills / agents${c.reset}`)
-  installClaudeRuntime(USER_CLAUDE_DIR, 'user')
+  installRuntimeScope('user', runtimeNames)
   removeLegacyPluginRegistration()
-  ok(`用户级安装完成 → ${USER_CLAUDE_DIR}`)
-  dim('  重启 Claude Code 后生效，eagle-* skills 和 agents 全局可用')
+  ok('用户级安装完成')
+  dim(`  已安装 runtime：${runtimeLabels(runtimeNames)}。重启对应客户端后生效`)
   log('')
 }
 
 // ── 项目级安装：接入当前项目，不改变业务项目结构 ─────────────────────────────
 
-async function installProject() {
+async function installProject(runtimeNames) {
   log(`${c.bold}[项目级] 接入当前项目${c.reset}`)
 
   const projectName = path.basename(TARGET_DIR)
@@ -118,8 +161,8 @@ async function installProject() {
   log('\n📁 创建 Eagle 上下文目录...')
   createEagleDirs()
 
-  log('🧠 安装项目级 skills / agents...')
-  installClaudeRuntime(path.join(TARGET_DIR, '.claude'), 'project')
+  log('🧠 安装项目级 runtime skills / agents...')
+  installRuntimeScope('project', runtimeNames)
 
   log('📋 复制编码规范...')
   copyAvailableRules()
@@ -135,7 +178,7 @@ async function installProject() {
 
   log('')
   ok(`项目级接入完成："${projectName}"`)
-  dim('  重启 Claude Code 后，当前项目可使用 eagle-* skills / agents')
+  dim(`  已安装 runtime：${runtimeLabels(runtimeNames)}。重启对应客户端后，当前项目可使用 Eagle skills / agents`)
   log('')
 }
 
@@ -148,8 +191,8 @@ async function uninstallCommand(opts) {
 
   if (opts.interactive) {
     log('选择卸载级别（可多选，空格分隔）：')
-    log('  [1] 用户级  — 删除 ~/.claude/ 中 Eagle skills/agents/hooks/scripts')
-    log('  [2] 项目级  — 删除当前项目 .claude/ 中 Eagle runtime 和 .eagle/')
+    log('  [1] 用户级  — 删除用户目录中的 Eagle runtime')
+    log('  [2] 项目级  — 删除当前项目中的 Eagle runtime 和 .eagle/')
     log('  [3] 全部    — 同时卸载两层')
     log('')
     const input = await ask('输入编号 (例: 1 2 或 3): ')
@@ -164,36 +207,40 @@ async function uninstallCommand(opts) {
     log('')
   }
 
-  if (user)    await uninstallUser()
-  if (project) await uninstallProject()
+  const runtimeNames = await resolveRuntimeNames(opts, '卸载')
+  if (!runtimeNames) return
+
+  if (user)    await uninstallUser(runtimeNames)
+  if (project) await uninstallProject(runtimeNames)
 }
 
 // ── 用户级卸载：清理 ~/.claude/ Eagle runtime ────────────────────────────────
 
-async function uninstallUser() {
+async function uninstallUser(runtimeNames) {
   log(`${c.bold}[用户级] 删除 Eagle skills / agents${c.reset}`)
-  removeClaudeRuntime(USER_CLAUDE_DIR, 'user')
+  removeRuntimeScope('user', runtimeNames)
   removeLegacyPluginRegistration()
-  ok(`用户级卸载完成 → ${USER_CLAUDE_DIR}`)
-  dim('  重启 Claude Code 后生效')
+  ok('用户级卸载完成')
+  dim('  重启对应客户端后生效')
   log('')
 }
 
 // ── 项目级卸载：清理 .claude/ Eagle runtime + .eagle/ ─────────────────────────
 
-async function uninstallProject() {
+async function uninstallProject(runtimeNames) {
   log(`${c.bold}[项目级] 清理当前项目 Eagle 安装${c.reset}`)
 
   const eagleDir = path.join(TARGET_DIR, '.eagle')
-  const claudeDir = path.join(TARGET_DIR, '.claude')
 
-  removeClaudeRuntime(claudeDir, 'project')
+  removeRuntimeScope('project', runtimeNames)
 
-  if (fs.existsSync(eagleDir)) {
+  if (selectedAllRuntimes(runtimeNames) && fs.existsSync(eagleDir)) {
     removeDirSafe(eagleDir)
     ok('.eagle/ 已删除')
-  } else {
+  } else if (selectedAllRuntimes(runtimeNames)) {
     info('未找到 .eagle/，跳过')
+  } else {
+    info('仅卸载部分 runtime，保留共享 .eagle/')
   }
 
   cleanGitignore()
@@ -263,19 +310,24 @@ ${c.bold}命令：${c.reset}
   map        扫描现有项目并生成 .eagle/codebase/ 代码库地图
 
 ${c.bold}install / uninstall 选项：${c.reset}
-  ${c.yellow}--user,    -u${c.reset}  用户级：安装/清理 ~/.claude/ Eagle runtime
-  ${c.yellow}--project, -p${c.reset}  项目级：安装/清理当前项目 .claude/ + .eagle/
+  ${c.yellow}--user,    -u${c.reset}  用户级：安装/清理 Eagle runtime
+  ${c.yellow}--project, -p${c.reset}  项目级：安装/清理当前项目 runtime + .eagle/
   ${c.yellow}--all,     -a${c.reset}  两层都操作
-  ${c.dim}（无选项）      交互式选择${c.reset}
+  ${c.yellow}--claude${c.reset}        只操作 Claude Code runtime
+  ${c.yellow}--codex${c.reset}         只操作 Codex runtime
+  ${c.dim}（无 runtime 选项）  交互式选择 Claude / Codex / 全部${c.reset}
 
 ${c.bold}示例：${c.reset}
   npx eagle install             # 交互式选择安装级别
-  npx eagle install --user      # 仅安装到 ~/.claude/
+  npx eagle install --user      # 仅安装用户级 runtime
   npx eagle install --project   # 仅安装到当前项目
+  npx eagle install --project --codex
+  npx eagle install --project --claude --codex
   npx eagle install --all       # 两层都安装
 
-  npx eagle uninstall --user    # 仅清理 ~/.claude/ Eagle runtime
+  npx eagle uninstall --user    # 仅清理用户级 runtime
   npx eagle uninstall --project # 仅清理当前项目 Eagle runtime
+  npx eagle uninstall --project --claude
   npx eagle uninstall --all     # 彻底卸载
 
   npx eagle sense               # 感知当前项目
@@ -376,8 +428,100 @@ function copyDirOverwrite(src, dst) {
   }
 }
 
-function installClaudeRuntime(claudeRoot, scope) {
-  const pluginDir = path.join(FRAMEWORK_DIR, 'plugin')
+function listVisibleEntries(dir) {
+  if (!fs.existsSync(dir)) return []
+  return fs.readdirSync(dir, { withFileTypes: true })
+    .filter(entry => !entry.name.startsWith('.'))
+}
+
+async function resolveRuntimeNames(opts, actionLabel) {
+  if (!opts.runtimeInteractive) return opts.runtimeNames
+
+  log(`选择${actionLabel} runtime（可多选，空格分隔）：`)
+  log('  [1] Claude Code')
+  log('  [2] Codex')
+  log('  [3] 全部')
+  log('')
+  const input = await ask('输入编号 (例: 1 2 或 3): ')
+  const nums = input.split(/\s+/).map(Number)
+  const runtimeNames = []
+  if (nums.includes(1) || nums.includes(3)) runtimeNames.push('claude')
+  if (nums.includes(2) || nums.includes(3)) runtimeNames.push('codex')
+
+  if (runtimeNames.length === 0) {
+    err(`未选择${actionLabel} runtime，已取消`)
+    return null
+  }
+  log('')
+  return runtimeNames
+}
+
+function runtimeAdapters(runtimeNames = DEFAULT_RUNTIME_NAMES) {
+  return runtimeNames.map(name => {
+    const adapter = RUNTIME_ADAPTERS[name]
+    if (!adapter) throw new Error(`Unknown Eagle runtime adapter: ${name}`)
+    return adapter
+  })
+}
+
+function runtimeRoot(adapter, scope) {
+  return scope === 'user' ? adapter.userRoot : adapter.projectRoot
+}
+
+function runtimeLabels(runtimeNames = DEFAULT_RUNTIME_NAMES) {
+  return runtimeAdapters(runtimeNames).map(adapter => adapter.label).join(', ')
+}
+
+function selectedAllRuntimes(runtimeNames) {
+  return DEFAULT_RUNTIME_NAMES.every(name => runtimeNames.includes(name))
+}
+
+function syncRuntimeSources(runtimeNames) {
+  if (!runtimeNames.includes('codex')) return
+
+  const script = path.join(FRAMEWORK_DIR, 'scripts', 'generate-codex-runtime.js')
+  if (!fs.existsSync(script)) {
+    warn(`  Codex sync script not found: ${script}`)
+    return
+  }
+
+  info('  同步 Codex runtime...')
+  try {
+    const output = execFileSync(process.execPath, [script], {
+      cwd: FRAMEWORK_DIR,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).trim()
+    if (output) dim(`  ${output}`)
+  } catch (e) {
+    const detail = e.stderr?.toString().trim() || e.message
+    throw new Error(`Codex runtime sync failed: ${detail}`)
+  }
+}
+
+function installRuntimeScope(scope, runtimeNames) {
+  for (const adapter of runtimeAdapters(runtimeNames)) {
+    const root = runtimeRoot(adapter, scope)
+    info(`  runtime: ${adapter.label}`)
+    adapter.install(root, scope, adapter)
+  }
+}
+
+function removeRuntimeScope(scope, runtimeNames) {
+  for (const adapter of runtimeAdapters(runtimeNames)) {
+    const root = runtimeRoot(adapter, scope)
+    info(`  runtime: ${adapter.label}`)
+    adapter.remove(root, scope, adapter)
+  }
+}
+
+function installClaudeRuntime(claudeRoot, scope, adapter) {
+  const pluginDir = adapter.sourceDir
+  if (!fs.existsSync(pluginDir)) {
+    warn(`  runtime source not found: ${pluginDir}`)
+    return
+  }
+
   const agentsSrc = path.join(pluginDir, 'agents')
   const skillsSrc = path.join(pluginDir, 'skills')
   const scriptsSrc = path.join(pluginDir, 'scripts')
@@ -444,6 +588,70 @@ function removeClaudeRuntime(claudeRoot, scope) {
     path.join(claudeRoot, 'scripts'),
     path.join(claudeRoot, 'hooks'),
     claudeRoot
+  ], scope === 'project')
+}
+
+function installCodexRuntime(codexRoot, scope, adapter) {
+  const pluginDir = adapter.sourceDir
+  if (!fs.existsSync(pluginDir)) {
+    warn(`  runtime source not found: ${pluginDir}`)
+    return
+  }
+
+  const skillsSrc = path.join(pluginDir, 'skills')
+  const agentsSrc = path.join(pluginDir, 'agents')
+  const skillsDst = codexRoot.skills
+  const agentsDst = codexRoot.agents
+
+  mkdirSafe(skillsDst)
+  mkdirSafe(agentsDst)
+
+  let copiedSkills = 0
+  for (const entry of listVisibleEntries(skillsSrc)) {
+    if (!entry.isDirectory()) continue
+    copyDirOverwrite(path.join(skillsSrc, entry.name), path.join(skillsDst, entry.name))
+    copiedSkills++
+  }
+
+  let copiedAgents = 0
+  for (const entry of listVisibleEntries(agentsSrc)) {
+    if (!entry.isFile() || !entry.name.endsWith('.toml')) continue
+    fs.copyFileSync(path.join(agentsSrc, entry.name), path.join(agentsDst, entry.name))
+    copiedAgents++
+  }
+
+  info(`  skills → ${path.relative(TARGET_DIR, skillsDst) || skillsDst}`)
+  info(`  agents → ${path.relative(TARGET_DIR, agentsDst) || agentsDst}`)
+  if (copiedSkills === 0 && copiedAgents === 0) {
+    warn('  Codex runtime source is present but has no converted skills or agents yet')
+  }
+}
+
+function removeCodexRuntime(codexRoot, scope) {
+  const skillsDir = codexRoot.skills
+  const agentsDir = codexRoot.agents
+
+  if (fs.existsSync(skillsDir)) {
+    for (const entry of fs.readdirSync(skillsDir, { withFileTypes: true })) {
+      if (entry.isDirectory() && entry.name.startsWith('eagle-')) {
+        removeDirSafe(path.join(skillsDir, entry.name))
+      }
+    }
+  }
+
+  if (fs.existsSync(agentsDir)) {
+    for (const entry of fs.readdirSync(agentsDir, { withFileTypes: true })) {
+      if (entry.isFile() && entry.name.startsWith('eagle-') && entry.name.endsWith('.toml')) {
+        removeFileSafe(path.join(agentsDir, entry.name))
+      }
+    }
+  }
+
+  pruneEmptyDirs([
+    skillsDir,
+    path.dirname(skillsDir),
+    agentsDir,
+    path.dirname(agentsDir)
   ], scope === 'project')
 }
 
