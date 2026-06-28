@@ -7,7 +7,7 @@
 
 - 优先把修改限制在用户明确要求的范围内。
 - 不要在本仓库运行 `/discuss`、`/dev`、`/fix`、`/refactor` 等 Eagle Skills；这些命令是给安装了 Eagle 的目标项目使用的。
-- 不要把本仓库当作 Go/Next.js/Flutter 业务项目来开发业务功能。
+- 不要把本仓库当作 Go/Python/Next.js/Flutter 业务项目来开发业务功能。
 - 不要删除或重写 `.eagle/knowledge/`、`.eagle/memory/`、`.eagle/tasks/` 这类运行期积累目录，除非用户明确要求。
 - 保留用户已有改动；遇到无关 dirty files 时不要回滚。
 
@@ -26,6 +26,7 @@ eagle-framework/
 │   └── scripts/                    # 钩子脚本
 ├── payload/
 │   ├── rules-go/                   # Go 编码规范
+│   ├── rules-python/               # Python 编码规范
 │   ├── rules-nextjs/               # Next.js 编码规范
 │   ├── rules-flutter/              # Flutter 编码规范
 │   └── component-auth/             # 跨端组件蓝图
@@ -52,7 +53,7 @@ node bin/eagle.js sense
 
 ## 修改规范
 
-- 规范位于 `payload/rules-{go,nextjs,flutter}/`。
+- 规范位于 `payload/rules-{go,python,nextjs,flutter}/`。
 - 每套规范都有 `INDEX.md`，修改或新增规范文件后同步更新对应索引。
 - 三套规范尽量保持结构平行：`code-style.md`、`project-structure.md`、`testing.md`。
 - 写规范时描述约束、模式和反例，不要夹带一次性业务实现。
@@ -73,6 +74,7 @@ node bin/eagle.js sense
   - `spec.md`：接口契约、数据结构、错误语义。
   - `knowledge.md`：设计决策、注意事项、踩坑记录。
   - `go/pattern.md`：Go 后端实现模式。
+  - `python/pattern.md`：Python 后端实现模式。
   - `nextjs/pattern.md`：Next.js Web 实现模式。
   - `flutter/pattern.md`：Flutter 移动端实现模式。
 - 新增组件时优先补齐三端 pattern；如果暂缺某端，要在文档中写明原因和后续补齐点。
@@ -80,7 +82,7 @@ node bin/eagle.js sense
 ## 修改 CLI 和模板
 
 - CLI 入口是 `bin/eagle.js`，命令实现位于 `cli/commands.js`，要求 Node.js `>=18.0.0`。
-- 模板位于 `templates/{go,nextjs,flutter}/`，变量格式使用 `{{PROJECT_NAME}}`。
+- 模板位于 `templates/{go,python,nextjs,flutter}/`，变量格式使用 `{{PROJECT_NAME}}`。
 - 修改安装、卸载或感知逻辑后，至少手动检查对应命令路径。
 - 涉及文件删除、复制、写入用户目录时，要保持幂等和可恢复；不要静默删除用户积累的数据。
 

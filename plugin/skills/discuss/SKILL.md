@@ -43,7 +43,7 @@
 ```
 核心目标：做完之后能做到什么？（一句话）
 边界：哪些在范围内？哪些明确不做？
-涉及端：Go 后端 / Next.js Web / Flutter App？（可多选）
+涉及端：Go 后端 / Python 后端 / Next.js Web / Flutter App？（可多选）
 约束：已知技术限制？必须兼容的现有逻辑？
 ```
 
@@ -99,7 +99,7 @@
   - {做的事1}
   - {做的事2}
 不做：{明确排除的事}
-涉及端：{Go / Next.js / Flutter}
+涉及端：{Go / Python / Next.js / Flutter}
 
 {如有前端}
 交互流程：{描述}
@@ -122,7 +122,7 @@
 
 ## 基本信息
 - 类型：{feature/bug/iteration/refactor}
-- 涉及端：{go/nextjs/flutter}
+- 涉及端：{go/python/nextjs/flutter}
 
 ## 目标
 {一句话目标}

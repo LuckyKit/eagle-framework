@@ -58,6 +58,7 @@ Got: status 500
 
 检测常见 Bug 模式：
 - **Go**：nil pointer、未检查的 error、context 取消、并发数据竞争
+- **Python**：未 await 的协程、SQLAlchemy session 泄漏、循环 import、Pydantic 校验遗漏
 - **Next.js**：stale closure、无限 re-render、缺失依赖项、异步状态更新、Server/Client Component 边界错误
 - **Flutter**：setState after dispose、Provider 未注入、异步错误未捕获
 
@@ -85,7 +86,7 @@ Got: status 500
 # Bug 诊断报告
 
 > 诊断时间：{YYYY-MM-DD HH:mm}
-> 技术栈：{Go / Next.js / Flutter}
+> 技术栈：{Go / Python / Next.js / Flutter}
 
 ## 问题描述
 

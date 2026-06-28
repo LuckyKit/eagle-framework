@@ -568,6 +568,8 @@ function cleanGitignore() {
 function detectStacks() {
   const stacks = []
   if (fs.existsSync(path.join(TARGET_DIR, 'backend', 'go.mod')))         stacks.push({ key: 'go',      label: 'Go' })
+  if (fs.existsSync(path.join(TARGET_DIR, 'backend', 'pyproject.toml'))
+    || fs.existsSync(path.join(TARGET_DIR, 'pyproject.toml')))            stacks.push({ key: 'python',  label: 'Python' })
   if (fs.existsSync(path.join(TARGET_DIR, 'web', 'next.config.ts'))
     || fs.existsSync(path.join(TARGET_DIR, 'web', 'next.config.js'))
     || fs.existsSync(path.join(TARGET_DIR, 'web', 'next.config.mjs')))   stacks.push({ key: 'nextjs',  label: 'Next.js' })
@@ -719,6 +721,16 @@ function createDirectories(stacks) {
     ]) mkdirSafe(path.join(TARGET_DIR, d))
   }
 
+  if (stacks.includes('python')) {
+    for (const d of [
+      'backend/app/api/v1',
+      'backend/app/services', 'backend/app/repositories',
+      'backend/app/models', 'backend/app/schemas',
+      'backend/app/core', 'backend/app/db',
+      'backend/tests', 'backend/alembic/versions',
+    ]) mkdirSafe(path.join(TARGET_DIR, d))
+  }
+
   if (stacks.includes('nextjs')) {
     for (const d of [
       'web/src/app',
@@ -830,6 +842,7 @@ function listProjectFiles(root, opts, rel = '', depth = 0, acc = []) {
 function renderStackMap(stacks) {
   const manifestRows = [
     ['Go backend', 'backend/go.mod'],
+    ['Python backend', 'backend/pyproject.toml'],
     ['Next.js web', 'web/next.config.ts'],
     ['Flutter mobile', 'mobile/pubspec.yaml'],
     ['Root package', 'package.json']
@@ -867,6 +880,7 @@ ${files.join('\n')}
 function renderTestingMap(stacks) {
   const commands = []
   if (stacks.includes('go')) commands.push('- Go: `cd backend && go test ./...`')
+  if (stacks.includes('python')) commands.push('- Python: `cd backend && pytest -v`')
   if (stacks.includes('nextjs')) commands.push('- Next.js: `cd web && npm test` or `cd web && npx jest run`')
   if (stacks.includes('flutter')) commands.push('- Flutter: `cd mobile && flutter test`')
   if (commands.length === 0 && fs.existsSync(path.join(TARGET_DIR, 'package.json'))) {
@@ -880,6 +894,7 @@ ${commands.length ? commands.join('\n') : '- No test command detected yet.'}
 
 ## Test Locations
 - Go: files matching \`*_test.go\`
+- Python: \`tests/test_*.py\`, \`*_test.py\`
 - Next.js: \`web/src/**/*.test.*\`, \`web/__tests__/\`, \`web/test/\`
 - Flutter: \`mobile/test/\`
 
@@ -892,6 +907,7 @@ ${commands.length ? commands.join('\n') : '- No test command detected yet.'}
 function renderConventionsMap(stacks, files) {
   const notes = []
   if (stacks.includes('go')) notes.push('- Go code should follow `.eagle/rules/go/INDEX.md` and existing `backend/internal` boundaries.')
+  if (stacks.includes('python')) notes.push('- Python code should follow `.eagle/rules/python/INDEX.md` and existing `backend/app` package boundaries.')
   if (stacks.includes('nextjs')) notes.push('- Next.js code should follow `.eagle/rules/nextjs/INDEX.md` and existing feature/component boundaries.')
   if (stacks.includes('flutter')) notes.push('- Flutter code should follow `.eagle/rules/flutter/INDEX.md` and existing `lib/features` boundaries.')
   if (files.some(f => f.includes('migrations'))) notes.push('- Database changes should include migration files and rollback notes.')
@@ -925,6 +941,14 @@ function generateSkeletons(stacks, projectName) {
     generateFromTemplate(path.join(tplDir, 'go', 'config.yaml.tpl'), path.join(TARGET_DIR, 'backend', 'config', 'config.yaml'),        {})
     writeIfNotExists(path.join(TARGET_DIR, 'backend', '.gitignore'), '# Go\n*.exe\n*.test\ncoverage.out\n.env\n')
     ok('Go 骨架已生成')
+  }
+
+  if (stacks.includes('python')) {
+    generateFromTemplate(path.join(tplDir, 'python', 'pyproject.toml.tpl'), path.join(TARGET_DIR, 'backend', 'pyproject.toml'),    { PROJECT_NAME: projectName })
+    generateFromTemplate(path.join(tplDir, 'python', 'main.py.tpl'),        path.join(TARGET_DIR, 'backend', 'app', 'main.py'),    { PROJECT_NAME: projectName })
+    generateFromTemplate(path.join(tplDir, 'python', 'config.yaml.tpl'),    path.join(TARGET_DIR, 'backend', 'config.yaml'),        {})
+    writeIfNotExists(path.join(TARGET_DIR, 'backend', '.env.example'), '# Environment\nDATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/{{PROJECT_NAME}}\nJWT_SECRET=change-me\n')
+    ok('Python 骨架已生成')
   }
 
   if (stacks.includes('nextjs')) {

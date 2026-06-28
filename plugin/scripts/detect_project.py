@@ -12,6 +12,12 @@ def detect_stack(project_root: str) -> list[str]:
     stacks = []
     if os.path.exists(os.path.join(project_root, "backend", "go.mod")):
         stacks.append("go")
+    python_markers = [
+        "backend/pyproject.toml",
+        "pyproject.toml",
+    ]
+    if any(os.path.exists(os.path.join(project_root, marker)) for marker in python_markers):
+        stacks.append("python")
     nextjs_markers = [
         "web/next.config.ts",
         "web/next.config.js",

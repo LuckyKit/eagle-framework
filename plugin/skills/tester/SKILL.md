@@ -34,6 +34,7 @@
 - 运行所有测试
 - 按栈分别执行：
   - Go：`go test ./...`
+  - Python：`pytest -v` / `pytest --cov=app`
   - Next.js：`npm test` / `npx jest run`
   - Flutter：`flutter test`
 - 输出：`.eagle/tasks/{slug}/TEST.md`

@@ -1,6 +1,6 @@
 {
   "name": "eagle-framework",
-  "description": "Eagle — Autonomous Full-Stack Development Framework for Go · Next.js · Flutter",
+  "description": "Eagle — Autonomous Full-Stack Development Framework for Go · Python · Next.js · Flutter",
   "owner": {
     "name": "loco9"
   },
@@ -10,7 +10,7 @@
       "source": "./plugin",
       "description": "一套全自动开发 Agent 框架，覆盖新项目初始化、功能开发、Bug 修复、大型重构。只有 /discuss 阶段需要人工确认，其余全自动执行。",
       "category": "Development",
-      "tags": ["go", "nextjs", "flutter", "fullstack", "automation", "agent"]
+      "tags": ["go", "python", "nextjs", "flutter", "fullstack", "automation", "agent"]
     }
   ]
 }

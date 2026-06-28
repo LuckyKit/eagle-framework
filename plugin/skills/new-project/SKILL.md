@@ -24,10 +24,11 @@
 项目名称（将用于 go.mod / package.json）：
 选择技术栈（可多选）：
   [1] Go 后端（backend/）
-  [2] Next.js Web（web/）
-  [3] Flutter 移动端（mobile/）
+  [2] Python 后端（backend/）
+  [3] Next.js Web（web/）
+  [4] Flutter 移动端（mobile/）
 
-示例输入：1 2 3（全选）或 1 2（Go + Next.js）
+示例输入：1 2 3 4（全选）或 2 3（Python + Next.js）
 ```
 
 等待用户选择。
@@ -45,6 +46,12 @@ mkdir -p backend/cmd/server
 mkdir -p backend/internal/{handler/middleware,service,repository,domain,bootstrap}
 mkdir -p backend/pkg/{apperr,pagination}
 mkdir -p backend/config backend/migrations
+
+# Python
+mkdir -p backend/app/api/v1
+mkdir -p backend/app/{services,repositories,models,schemas,core,db}
+mkdir -p backend/tests
+mkdir -p backend/alembic/versions
 
 # Next.js
 mkdir -p web/src/app
@@ -66,6 +73,7 @@ mkdir -p mobile/test/helpers
 
 根据选择的栈，从框架复制 `payload/rules-{stack}/` 到项目：
 - Go → `code-style.md`, `project-structure.md`, `testing.md`, `INDEX.md`
+- Python → 同上
 - Next.js → 同上
 - Flutter → 同上
 
@@ -80,6 +88,11 @@ mkdir -p mobile/test/helpers
 - `backend/cmd/server/main.go`（含 graceful shutdown）
 - `backend/config/config.yaml`
 - `backend/.gitignore`
+
+**Python：**
+- `backend/pyproject.toml`（项目名，含 FastAPI + SQLAlchemy 等标准依赖）
+- `backend/app/main.py`（含 lifespan + CORS + v1 router）
+- `backend/.env.example`
 
 **Next.js：**
 - `web/package.json`（项目名，含标准依赖）
@@ -126,6 +139,7 @@ git commit -m "chore: init project with Eagle Framework"
 
 ```
 backend/go.mod       存在 → Go 后端
+backend/pyproject.toml 存在 → Python 后端
 web/next.config.ts   存在 → Next.js Web
 mobile/pubspec.yaml  存在 → Flutter 移动端
 .eagle/               存在 → Eagle 框架项目
@@ -136,9 +150,10 @@ mobile/pubspec.yaml  存在 → Flutter 移动端
 ```
 🦅 项目感知结果
 
-技术栈：Go + Next.js
+技术栈：Go + Python + Next.js
 Eagle 规范：
   ✅ .eagle/rules/go/
+  ✅ .eagle/rules/python/
   ✅ .eagle/rules/nextjs/
   ❌ .eagle/rules/flutter/（未使用该栈）
 

@@ -28,6 +28,7 @@ git diff HEAD~{N} --name-only  # N = 本次任务的 commit 数量
 | 变更文件 | 读取规范 |
 |---------|---------|
 | `backend/**/*.go` | `.eagle/rules/go/INDEX.md` → 按需深入 |
+| `backend/**/*.py` | `.eagle/rules/python/INDEX.md` → 按需深入 |
 | `web/**/*.tsx?` | `.eagle/rules/nextjs/INDEX.md` → 按需深入 |
 | `mobile/**/*.dart` | `.eagle/rules/flutter/INDEX.md` → 按需深入 |
 
@@ -41,6 +42,7 @@ git diff HEAD~{N} --name-only  # N = 本次任务的 commit 数量
 
 **错误处理**
 - Go：是否包装错误上下文？是否有裸 return err？
+- Python：是否 raise 自定义异常？是否有裸 except？
 - Next.js：是否处理 loading/error 状态？
 - Flutter：是否用 AsyncValue.when 处理？
 

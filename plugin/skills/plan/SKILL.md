@@ -42,7 +42,7 @@
 
 **Wave 规划原则：**
 - 每个 Wave = 单次可独立实现和最小验证的代码批次（≤1 天工作量）
-- Wave 必须标注：涉及的栈（go / nextjs / flutter）、依赖的其他 Wave
+- Wave 必须标注：涉及的栈（go / python / nextjs / flutter）、依赖的其他 Wave
 - **没有依赖关系的 Wave 必须标注为可并行**
 
 **栈分配原则：**
@@ -60,7 +60,7 @@
 ## 元信息
 - slug: {slug}
 - 类型: {feature/bug/iteration/refactor}
-- 涉及端: {go/nextjs/flutter}
+- 涉及端: {go/python/nextjs/flutter}
 
 ## 设计决策
 {analyst 的关键技术选型、架构决策、竞品参考要点}

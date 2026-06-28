@@ -81,7 +81,7 @@ Commit：{N} 次
 ## 硬性约束
 
 1. **只实现指定 Wave** — 不实现其他 Wave 的内容，不提前做后面的事
-2. **只读涉及栈的规范** — Wave 标注 `go` 就不读 nextjs/flutter 规范
+2. **只读涉及栈的规范** — Wave 标注 `go` 就不读 python/nextjs/flutter 规范
 3. **原子 commit** — 每个逻辑步骤单独 commit，不攒大 commit
 4. **不跑测试** — 测试交给 /eagle:tester
 5. **遵守编码规范** — 必须符合 `.eagle/rules/{stack}/` 中的规范
