@@ -8,7 +8,7 @@
 ## 调用方式
 
 ```
-/eagle:tester {slug}   ← 用户直接调用（审查该任务所有变更）
+/eagle:reviewer {slug} ← 用户直接调用（审查该任务所有变更）
 由编排 Skill 调用
 ```
 

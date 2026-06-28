@@ -9,9 +9,23 @@ const readline = require('readline')
 
 const FRAMEWORK_DIR       = path.join(__dirname, '..')
 const TARGET_DIR          = process.cwd()
-const USER_CLAUDE_DIR     = path.join(os.homedir(), '.claude')
-const CLAUDE_SETTINGS     = path.join(os.homedir(), '.claude', 'settings.json')
+const USER_HOME           = os.homedir()
+const USER_CLAUDE_DIR     = path.join(USER_HOME, '.claude')
+const CLAUDE_SETTINGS     = path.join(USER_CLAUDE_DIR, 'settings.json')
 const PLUGIN_KEY          = 'eagle@eagle-framework'
+const DEFAULT_RUNTIME_NAMES = ['claude']
+
+const RUNTIME_ADAPTERS = {
+  claude: {
+    name: 'claude',
+    label: 'Claude Code',
+    sourceDir: path.join(FRAMEWORK_DIR, 'plugin', 'claude'),
+    userRoot: USER_CLAUDE_DIR,
+    projectRoot: path.join(TARGET_DIR, '.claude'),
+    install: installClaudeRuntime,
+    remove: removeClaudeRuntime,
+  },
+}
 
 // ─── 颜色 ────────────────────────────────────────────────────────────────────
 
@@ -68,8 +82,8 @@ async function installCommand(opts) {
 
   if (opts.interactive) {
     log('选择安装级别（可多选，空格分隔）：')
-    log('  [1] 用户级  — 安装 skills/agents 到 ~/.claude/')
-    log('  [2] 项目级  — 安装 skills/agents 到当前项目 .claude/，并初始化 .eagle/')
+    log('  [1] 用户级  — 安装默认 runtime skills/agents 到用户目录')
+    log('  [2] 项目级  — 安装默认 runtime skills/agents 到当前项目，并初始化 .eagle/')
     log('  [3] 全部    — 同时安装两层')
     log('')
     const input = await ask('输入编号 (例: 1 2 或 3): ')
@@ -92,10 +106,10 @@ async function installCommand(opts) {
 
 async function installUser() {
   log(`${c.bold}[用户级] 安装 Eagle skills / agents${c.reset}`)
-  installClaudeRuntime(USER_CLAUDE_DIR, 'user')
+  installRuntimeScope('user')
   removeLegacyPluginRegistration()
-  ok(`用户级安装完成 → ${USER_CLAUDE_DIR}`)
-  dim('  重启 Claude Code 后生效，eagle-* skills 和 agents 全局可用')
+  ok('用户级安装完成')
+  dim(`  已安装 runtime：${runtimeLabels()}。重启对应客户端后生效`)
   log('')
 }
 
@@ -118,8 +132,8 @@ async function installProject() {
   log('\n📁 创建 Eagle 上下文目录...')
   createEagleDirs()
 
-  log('🧠 安装项目级 skills / agents...')
-  installClaudeRuntime(path.join(TARGET_DIR, '.claude'), 'project')
+  log('🧠 安装项目级 runtime skills / agents...')
+  installRuntimeScope('project')
 
   log('📋 复制编码规范...')
   copyAvailableRules()
@@ -135,7 +149,7 @@ async function installProject() {
 
   log('')
   ok(`项目级接入完成："${projectName}"`)
-  dim('  重启 Claude Code 后，当前项目可使用 eagle-* skills / agents')
+  dim(`  已安装 runtime：${runtimeLabels()}。重启对应客户端后，当前项目可使用 Eagle skills / agents`)
   log('')
 }
 
@@ -148,8 +162,8 @@ async function uninstallCommand(opts) {
 
   if (opts.interactive) {
     log('选择卸载级别（可多选，空格分隔）：')
-    log('  [1] 用户级  — 删除 ~/.claude/ 中 Eagle skills/agents/hooks/scripts')
-    log('  [2] 项目级  — 删除当前项目 .claude/ 中 Eagle runtime 和 .eagle/')
+    log('  [1] 用户级  — 删除用户目录中的 Eagle runtime')
+    log('  [2] 项目级  — 删除当前项目中的 Eagle runtime 和 .eagle/')
     log('  [3] 全部    — 同时卸载两层')
     log('')
     const input = await ask('输入编号 (例: 1 2 或 3): ')
@@ -172,10 +186,10 @@ async function uninstallCommand(opts) {
 
 async function uninstallUser() {
   log(`${c.bold}[用户级] 删除 Eagle skills / agents${c.reset}`)
-  removeClaudeRuntime(USER_CLAUDE_DIR, 'user')
+  removeRuntimeScope('user')
   removeLegacyPluginRegistration()
-  ok(`用户级卸载完成 → ${USER_CLAUDE_DIR}`)
-  dim('  重启 Claude Code 后生效')
+  ok('用户级卸载完成')
+  dim('  重启对应客户端后生效')
   log('')
 }
 
@@ -185,9 +199,8 @@ async function uninstallProject() {
   log(`${c.bold}[项目级] 清理当前项目 Eagle 安装${c.reset}`)
 
   const eagleDir = path.join(TARGET_DIR, '.eagle')
-  const claudeDir = path.join(TARGET_DIR, '.claude')
 
-  removeClaudeRuntime(claudeDir, 'project')
+  removeRuntimeScope('project')
 
   if (fs.existsSync(eagleDir)) {
     removeDirSafe(eagleDir)
@@ -263,18 +276,18 @@ ${c.bold}命令：${c.reset}
   map        扫描现有项目并生成 .eagle/codebase/ 代码库地图
 
 ${c.bold}install / uninstall 选项：${c.reset}
-  ${c.yellow}--user,    -u${c.reset}  用户级：安装/清理 ~/.claude/ Eagle runtime
-  ${c.yellow}--project, -p${c.reset}  项目级：安装/清理当前项目 .claude/ + .eagle/
+  ${c.yellow}--user,    -u${c.reset}  用户级：安装/清理默认 Eagle runtime
+  ${c.yellow}--project, -p${c.reset}  项目级：安装/清理当前项目 runtime + .eagle/
   ${c.yellow}--all,     -a${c.reset}  两层都操作
   ${c.dim}（无选项）      交互式选择${c.reset}
 
 ${c.bold}示例：${c.reset}
   npx eagle install             # 交互式选择安装级别
-  npx eagle install --user      # 仅安装到 ~/.claude/
+  npx eagle install --user      # 仅安装用户级 runtime
   npx eagle install --project   # 仅安装到当前项目
   npx eagle install --all       # 两层都安装
 
-  npx eagle uninstall --user    # 仅清理 ~/.claude/ Eagle runtime
+  npx eagle uninstall --user    # 仅清理用户级 runtime
   npx eagle uninstall --project # 仅清理当前项目 Eagle runtime
   npx eagle uninstall --all     # 彻底卸载
 
@@ -376,8 +389,45 @@ function copyDirOverwrite(src, dst) {
   }
 }
 
-function installClaudeRuntime(claudeRoot, scope) {
-  const pluginDir = path.join(FRAMEWORK_DIR, 'plugin')
+function defaultRuntimeAdapters() {
+  return DEFAULT_RUNTIME_NAMES.map(name => {
+    const adapter = RUNTIME_ADAPTERS[name]
+    if (!adapter) throw new Error(`Unknown Eagle runtime adapter: ${name}`)
+    return adapter
+  })
+}
+
+function runtimeRoot(adapter, scope) {
+  return scope === 'user' ? adapter.userRoot : adapter.projectRoot
+}
+
+function runtimeLabels() {
+  return defaultRuntimeAdapters().map(adapter => adapter.label).join(', ')
+}
+
+function installRuntimeScope(scope) {
+  for (const adapter of defaultRuntimeAdapters()) {
+    const root = runtimeRoot(adapter, scope)
+    info(`  runtime: ${adapter.label}`)
+    adapter.install(root, scope, adapter)
+  }
+}
+
+function removeRuntimeScope(scope) {
+  for (const adapter of defaultRuntimeAdapters()) {
+    const root = runtimeRoot(adapter, scope)
+    info(`  runtime: ${adapter.label}`)
+    adapter.remove(root, scope, adapter)
+  }
+}
+
+function installClaudeRuntime(claudeRoot, scope, adapter) {
+  const pluginDir = adapter.sourceDir
+  if (!fs.existsSync(pluginDir)) {
+    warn(`  runtime source not found: ${pluginDir}`)
+    return
+  }
+
   const agentsSrc = path.join(pluginDir, 'agents')
   const skillsSrc = path.join(pluginDir, 'skills')
   const scriptsSrc = path.join(pluginDir, 'scripts')
