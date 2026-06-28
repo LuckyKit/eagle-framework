@@ -27,14 +27,20 @@ npx eagle install
 ```
 
 交互式询问安装级别：
-- **用户级** — 复制默认 runtime 的 Eagle skills / agents / hooks / scripts 到用户目录，全局生效
-- **项目级** — 复制默认 runtime 的 Eagle skills / agents / hooks / scripts 到当前项目，并初始化 `.eagle/`
+- **用户级** — 复制所选 runtime 的 Eagle skills / agents / hooks / scripts 到用户目录，全局生效
+- **项目级** — 复制所选 runtime 的 Eagle skills / agents / hooks / scripts 到当前项目，并初始化 `.eagle/`
+
+安装级别确定后会继续询问 runtime，可多选：
+- **Claude Code** — 安装到 `.claude/` 或 `~/.claude/`
+- **Codex** — 安装到 `.agents/skills/` + `.codex/agents/`，用户级为 `~/.agents/skills/` + `~/.codex/agents/`
 
 或直接指定级别：
 
 ```bash
 npx eagle install --user      # 仅安装用户级 runtime
 npx eagle install --project   # 仅安装到当前项目
+npx eagle install --project --codex
+npx eagle install --project --claude --codex
 npx eagle install --all       # 两层都安装
 ```
 
@@ -46,7 +52,7 @@ npx eagle install --all       # 两层都安装
 npx eagle install --user
 ```
 
-当前默认 runtime 是 Claude Code + Codex。Claude 会复制 `plugin/claude/agents`、`plugin/claude/skills`、`plugin/claude/hooks`、`plugin/claude/scripts` 到 `~/.claude/`，并写入 Eagle 的 SessionStart hook；Codex 会使用 `~/.agents/skills` 和 `~/.codex/agents`。重启对应客户端后，Eagle skills 和 agents 全局可用。
+安装时会选择 runtime。Claude 会复制 `plugin/claude/agents`、`plugin/claude/skills`、`plugin/claude/hooks`、`plugin/claude/scripts` 到 `~/.claude/`，并写入 Eagle 的 SessionStart hook；Codex 会先自动同步 `plugin/codex/`，再安装到 `~/.agents/skills` 和 `~/.codex/agents`。重启对应客户端后，Eagle skills 和 agents 全局可用。
 
 **第二步：接入业务项目（项目级，每个项目一次）**
 
@@ -56,7 +62,7 @@ npx eagle install --project
 ```
 
 项目级安装不会询问项目名或技术栈，也不会生成业务目录。它只会：
-- 复制默认 runtime 的 Eagle skills / agents / hooks / scripts 到当前项目
+- 询问要安装的 runtime，并复制对应 Eagle skills / agents / hooks / scripts 到当前项目
 - 初始化 `.eagle/` 上下文
 - 复制通用编码规范（`.eagle/rules/`）
 - 复制组件蓝图（`.eagle/components/`）
@@ -232,6 +238,8 @@ npx eagle uninstall
 ```bash
 npx eagle uninstall --user      # 删除用户级 Eagle runtime
 npx eagle uninstall --project   # 删除当前项目 Eagle runtime 和 .eagle/
+npx eagle uninstall --project --codex
+npx eagle uninstall --project --claude --codex
 npx eagle uninstall --all       # 彻底卸载两层
 ```
 
@@ -312,6 +320,7 @@ eagle map
 
 1. 更新规范：修改 `payload/rules-{stack}/` 下的文档，同步更新 `INDEX.md`
 2. 更新 Claude Agent/Skill：修改 `plugin/claude/agents/` 或 `plugin/claude/skills/`
-3. 新增 runtime：在 `plugin/{runtime}/` 下建立独立的分发源，并在 `cli/commands.js` 中新增 runtime adapter
-4. 新增组件：在 `payload/component-{name}/` 下创建目录，包含 `spec.md` + `knowledge.md` + 三端 `pattern.md`
-5. 提交前测试 `node bin/eagle.js install --project` 对现有项目无侵入接入的行为
+3. 同步 Codex runtime：运行 `npm run sync:codex`，生成 `plugin/codex/skills/` 和 `plugin/codex/agents/`
+4. 新增 runtime：在 `plugin/{runtime}/` 下建立独立的分发源，并在 `cli/commands.js` 中新增 runtime adapter
+5. 新增组件：在 `payload/component-{name}/` 下创建目录，包含 `spec.md` + `knowledge.md` + 三端 `pattern.md`
+6. 提交前测试 `node bin/eagle.js install --project` 对现有项目无侵入接入的行为

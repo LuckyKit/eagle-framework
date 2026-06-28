@@ -1,0 +1,4 @@
+interface:
+  display_name: "/refactor — 大型重构"
+  short_description: "分波次执行，每波次独立验证。无人工介入。"
+  default_prompt: "Use $eagle-refactor to run the matching Eagle workflow."

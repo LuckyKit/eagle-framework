@@ -4,8 +4,8 @@
 
 Eagle 分成两层：
 
-- 用户级安装：把默认 runtime 的 Eagle skills / agents / hooks / scripts 复制到用户目录，通常只需要做一次。
-- 项目级安装：把默认 runtime 的 Eagle skills / agents / hooks / scripts 复制到当前项目，并生成 `.eagle/` 保存规范、项目状态、代码库地图、质量门禁、长期记忆。
+- 用户级安装：把所选 runtime 的 Eagle skills / agents / hooks / scripts 复制到用户目录，通常只需要做一次。
+- 项目级安装：把所选 runtime 的 Eagle skills / agents / hooks / scripts 复制到当前项目，并生成 `.eagle/` 保存规范、项目状态、代码库地图、质量门禁、长期记忆。
 
 推荐做法是先把当前 Eagle 仓库链接成本机命令，然后在任意业务项目中执行安装。
 
@@ -32,14 +32,14 @@ node C:\Users\loco9\Desktop\eagle-framework\bin\eagle.js --help
 
 ## 2. 安装用户级 Eagle
 
-用户级安装只需要做一次。当前默认 runtime 是 Claude Code + Codex，会把 Eagle runtime 分发到对应客户端目录。
+用户级安装只需要做一次。命令会询问要安装的 runtime：Claude Code、Codex 或全部。选择 Codex 时会自动同步 Codex runtime。
 
 ```bash
 cd C:\Users\loco9\Desktop\eagle-framework
 eagle install --user
 ```
 
-安装后重启 Claude Code，让 `eagle-*` skills 和 agents 全局生效。
+安装后重启对应客户端，让 `eagle-*` skills 和 agents 全局生效。
 
 如果没有使用 `npm link`：
 
@@ -56,7 +56,14 @@ cd C:\path\to\your-project
 eagle install --project
 ```
 
-这个命令会在当前项目里生成默认 runtime 目录和 `.eagle/`：Claude 使用 `.claude/`，Codex 使用 `.agents/skills/` 和 `.codex/agents/`，`.eagle/` 保存通用规范、组件蓝图和基础上下文，并自动扫描现有技术栈。它不会询问项目名或技术栈，也不会生成业务目录。
+这个命令会询问要安装的 runtime，并在当前项目里生成对应 runtime 目录和 `.eagle/`：Claude 使用 `.claude/`，Codex 使用 `.agents/skills/` 和 `.codex/agents/`，`.eagle/` 保存通用规范、组件蓝图和基础上下文，并自动扫描现有技术栈。它不会询问项目名或技术栈，也不会生成业务目录。
+
+如果不想交互选择 runtime，可以直接指定：
+
+```bash
+eagle install --project --codex
+eagle install --project --claude --codex
+```
 
 如果没有使用 `npm link`：
 

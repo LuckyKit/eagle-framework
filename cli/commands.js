@@ -4,7 +4,7 @@
 const fs   = require('fs')
 const path = require('path')
 const os   = require('os')
-const { execSync } = require('child_process')
+const { execFileSync, execSync } = require('child_process')
 const readline = require('readline')
 
 const FRAMEWORK_DIR       = path.join(__dirname, '..')
@@ -70,11 +70,18 @@ async function main() {
   const hasUser    = flags.includes('--user')    || flags.includes('-u')
   const hasProject = flags.includes('--project') || flags.includes('-p')
   const hasAll     = flags.includes('--all')     || flags.includes('-a')
+  const hasClaude  = flags.includes('--claude')
+  const hasCodex   = flags.includes('--codex')
+  const runtimeNames = []
+  if (hasClaude) runtimeNames.push('claude')
+  if (hasCodex)  runtimeNames.push('codex')
 
   // --all 等价于同时指定 --user --project
   const opts = {
     user:    hasUser || hasAll,
     project: hasProject || hasAll,
+    runtimeNames,
+    runtimeInteractive: runtimeNames.length === 0,
     // 没有任何 flag → 交互式询问
     interactive: !hasUser && !hasProject && !hasAll,
   }
@@ -99,8 +106,8 @@ async function installCommand(opts) {
 
   if (opts.interactive) {
     log('选择安装级别（可多选，空格分隔）：')
-    log('  [1] 用户级  — 安装默认 runtime skills/agents 到用户目录')
-    log('  [2] 项目级  — 安装默认 runtime skills/agents 到当前项目，并初始化 .eagle/')
+    log('  [1] 用户级  — 安装 runtime skills/agents 到用户目录')
+    log('  [2] 项目级  — 安装 runtime skills/agents 到当前项目，并初始化 .eagle/')
     log('  [3] 全部    — 同时安装两层')
     log('')
     const input = await ask('输入编号 (例: 1 2 或 3): ')
@@ -115,24 +122,29 @@ async function installCommand(opts) {
     log('')
   }
 
-  if (user)    await installUser()
-  if (project) await installProject()
+  const runtimeNames = await resolveRuntimeNames(opts, '安装')
+  if (!runtimeNames) return
+
+  syncRuntimeSources(runtimeNames)
+
+  if (user)    await installUser(runtimeNames)
+  if (project) await installProject(runtimeNames)
 }
 
 // ── 用户级安装：写入 ~/.claude/ ───────────────────────────────────────────────
 
-async function installUser() {
+async function installUser(runtimeNames) {
   log(`${c.bold}[用户级] 安装 Eagle skills / agents${c.reset}`)
-  installRuntimeScope('user')
+  installRuntimeScope('user', runtimeNames)
   removeLegacyPluginRegistration()
   ok('用户级安装完成')
-  dim(`  已安装 runtime：${runtimeLabels()}。重启对应客户端后生效`)
+  dim(`  已安装 runtime：${runtimeLabels(runtimeNames)}。重启对应客户端后生效`)
   log('')
 }
 
 // ── 项目级安装：接入当前项目，不改变业务项目结构 ─────────────────────────────
 
-async function installProject() {
+async function installProject(runtimeNames) {
   log(`${c.bold}[项目级] 接入当前项目${c.reset}`)
 
   const projectName = path.basename(TARGET_DIR)
@@ -150,7 +162,7 @@ async function installProject() {
   createEagleDirs()
 
   log('🧠 安装项目级 runtime skills / agents...')
-  installRuntimeScope('project')
+  installRuntimeScope('project', runtimeNames)
 
   log('📋 复制编码规范...')
   copyAvailableRules()
@@ -166,7 +178,7 @@ async function installProject() {
 
   log('')
   ok(`项目级接入完成："${projectName}"`)
-  dim(`  已安装 runtime：${runtimeLabels()}。重启对应客户端后，当前项目可使用 Eagle skills / agents`)
+  dim(`  已安装 runtime：${runtimeLabels(runtimeNames)}。重启对应客户端后，当前项目可使用 Eagle skills / agents`)
   log('')
 }
 
@@ -195,15 +207,18 @@ async function uninstallCommand(opts) {
     log('')
   }
 
-  if (user)    await uninstallUser()
-  if (project) await uninstallProject()
+  const runtimeNames = await resolveRuntimeNames(opts, '卸载')
+  if (!runtimeNames) return
+
+  if (user)    await uninstallUser(runtimeNames)
+  if (project) await uninstallProject(runtimeNames)
 }
 
 // ── 用户级卸载：清理 ~/.claude/ Eagle runtime ────────────────────────────────
 
-async function uninstallUser() {
+async function uninstallUser(runtimeNames) {
   log(`${c.bold}[用户级] 删除 Eagle skills / agents${c.reset}`)
-  removeRuntimeScope('user')
+  removeRuntimeScope('user', runtimeNames)
   removeLegacyPluginRegistration()
   ok('用户级卸载完成')
   dim('  重启对应客户端后生效')
@@ -212,18 +227,20 @@ async function uninstallUser() {
 
 // ── 项目级卸载：清理 .claude/ Eagle runtime + .eagle/ ─────────────────────────
 
-async function uninstallProject() {
+async function uninstallProject(runtimeNames) {
   log(`${c.bold}[项目级] 清理当前项目 Eagle 安装${c.reset}`)
 
   const eagleDir = path.join(TARGET_DIR, '.eagle')
 
-  removeRuntimeScope('project')
+  removeRuntimeScope('project', runtimeNames)
 
-  if (fs.existsSync(eagleDir)) {
+  if (selectedAllRuntimes(runtimeNames) && fs.existsSync(eagleDir)) {
     removeDirSafe(eagleDir)
     ok('.eagle/ 已删除')
-  } else {
+  } else if (selectedAllRuntimes(runtimeNames)) {
     info('未找到 .eagle/，跳过')
+  } else {
+    info('仅卸载部分 runtime，保留共享 .eagle/')
   }
 
   cleanGitignore()
@@ -293,19 +310,24 @@ ${c.bold}命令：${c.reset}
   map        扫描现有项目并生成 .eagle/codebase/ 代码库地图
 
 ${c.bold}install / uninstall 选项：${c.reset}
-  ${c.yellow}--user,    -u${c.reset}  用户级：安装/清理默认 Eagle runtime
+  ${c.yellow}--user,    -u${c.reset}  用户级：安装/清理 Eagle runtime
   ${c.yellow}--project, -p${c.reset}  项目级：安装/清理当前项目 runtime + .eagle/
   ${c.yellow}--all,     -a${c.reset}  两层都操作
-  ${c.dim}（无选项）      交互式选择${c.reset}
+  ${c.yellow}--claude${c.reset}        只操作 Claude Code runtime
+  ${c.yellow}--codex${c.reset}         只操作 Codex runtime
+  ${c.dim}（无 runtime 选项）  交互式选择 Claude / Codex / 全部${c.reset}
 
 ${c.bold}示例：${c.reset}
   npx eagle install             # 交互式选择安装级别
   npx eagle install --user      # 仅安装用户级 runtime
   npx eagle install --project   # 仅安装到当前项目
+  npx eagle install --project --codex
+  npx eagle install --project --claude --codex
   npx eagle install --all       # 两层都安装
 
   npx eagle uninstall --user    # 仅清理用户级 runtime
   npx eagle uninstall --project # 仅清理当前项目 Eagle runtime
+  npx eagle uninstall --project --claude
   npx eagle uninstall --all     # 彻底卸载
 
   npx eagle sense               # 感知当前项目
@@ -412,8 +434,30 @@ function listVisibleEntries(dir) {
     .filter(entry => !entry.name.startsWith('.'))
 }
 
-function defaultRuntimeAdapters() {
-  return DEFAULT_RUNTIME_NAMES.map(name => {
+async function resolveRuntimeNames(opts, actionLabel) {
+  if (!opts.runtimeInteractive) return opts.runtimeNames
+
+  log(`选择${actionLabel} runtime（可多选，空格分隔）：`)
+  log('  [1] Claude Code')
+  log('  [2] Codex')
+  log('  [3] 全部')
+  log('')
+  const input = await ask('输入编号 (例: 1 2 或 3): ')
+  const nums = input.split(/\s+/).map(Number)
+  const runtimeNames = []
+  if (nums.includes(1) || nums.includes(3)) runtimeNames.push('claude')
+  if (nums.includes(2) || nums.includes(3)) runtimeNames.push('codex')
+
+  if (runtimeNames.length === 0) {
+    err(`未选择${actionLabel} runtime，已取消`)
+    return null
+  }
+  log('')
+  return runtimeNames
+}
+
+function runtimeAdapters(runtimeNames = DEFAULT_RUNTIME_NAMES) {
+  return runtimeNames.map(name => {
     const adapter = RUNTIME_ADAPTERS[name]
     if (!adapter) throw new Error(`Unknown Eagle runtime adapter: ${name}`)
     return adapter
@@ -424,20 +468,47 @@ function runtimeRoot(adapter, scope) {
   return scope === 'user' ? adapter.userRoot : adapter.projectRoot
 }
 
-function runtimeLabels() {
-  return defaultRuntimeAdapters().map(adapter => adapter.label).join(', ')
+function runtimeLabels(runtimeNames = DEFAULT_RUNTIME_NAMES) {
+  return runtimeAdapters(runtimeNames).map(adapter => adapter.label).join(', ')
 }
 
-function installRuntimeScope(scope) {
-  for (const adapter of defaultRuntimeAdapters()) {
+function selectedAllRuntimes(runtimeNames) {
+  return DEFAULT_RUNTIME_NAMES.every(name => runtimeNames.includes(name))
+}
+
+function syncRuntimeSources(runtimeNames) {
+  if (!runtimeNames.includes('codex')) return
+
+  const script = path.join(FRAMEWORK_DIR, 'scripts', 'generate-codex-runtime.js')
+  if (!fs.existsSync(script)) {
+    warn(`  Codex sync script not found: ${script}`)
+    return
+  }
+
+  info('  同步 Codex runtime...')
+  try {
+    const output = execFileSync(process.execPath, [script], {
+      cwd: FRAMEWORK_DIR,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).trim()
+    if (output) dim(`  ${output}`)
+  } catch (e) {
+    const detail = e.stderr?.toString().trim() || e.message
+    throw new Error(`Codex runtime sync failed: ${detail}`)
+  }
+}
+
+function installRuntimeScope(scope, runtimeNames) {
+  for (const adapter of runtimeAdapters(runtimeNames)) {
     const root = runtimeRoot(adapter, scope)
     info(`  runtime: ${adapter.label}`)
     adapter.install(root, scope, adapter)
   }
 }
 
-function removeRuntimeScope(scope) {
-  for (const adapter of defaultRuntimeAdapters()) {
+function removeRuntimeScope(scope, runtimeNames) {
+  for (const adapter of runtimeAdapters(runtimeNames)) {
     const root = runtimeRoot(adapter, scope)
     info(`  runtime: ${adapter.label}`)
     adapter.remove(root, scope, adapter)

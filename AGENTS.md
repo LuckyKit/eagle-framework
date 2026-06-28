@@ -67,7 +67,8 @@ node bin/eagle.js sense
 
 - Claude Agent 文件路径：`plugin/claude/agents/{name}.md`。
 - Claude Skill 文件路径：`plugin/claude/skills/{name}/SKILL.md`。
-- Codex runtime 路径：`plugin/codex/agents/` 和 `plugin/codex/skills/`，不要把 Claude 格式文件直接复制过去冒充 Codex 格式。
+- Codex runtime 路径：`plugin/codex/agents/` 和 `plugin/codex/skills/`，由 `npm run sync:codex` 从 Claude 源生成。
+- 修改 Claude Agent/Skill 后运行 `npm run sync:codex`，不要手工双写两套 runtime。
 - Agent frontmatter 至少包含 `name` 和 `description`。
 - Skill 中引用 Agent 时使用 Agent frontmatter 的 `name` 字段值，例如 `eagle-analyst`。
 - 修改 Agent/Skill 后，检查相关命令说明、README 表格和插件清单是否也需要同步。

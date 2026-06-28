@@ -1,0 +1,4 @@
+interface:
+  display_name: "eagle map-codebase — 代码库地图"
+  short_description: "扫描现有项目，生成或刷新 `.eagle/codebase/`，让后续规划和实现不用每次重新理解项目结构。"
+  default_prompt: "Use $eagle-map-codebase to run the matching Eagle workflow."

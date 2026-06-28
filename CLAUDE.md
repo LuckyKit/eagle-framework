@@ -63,7 +63,8 @@ eagle-framework/
 2. **Claude Skill 文件路径**：`plugin/claude/skills/{name}/SKILL.md`
 3. **Claude Agent 文件路径**：`plugin/claude/agents/{name}.md`
 4. **Skill 中引用 Agent**：用 agent 的 `name` 字段值（如 `eagle-analyst`）
-5. **不要混用 runtime 格式**：Codex skill/agent 要放在 `plugin/codex/`，不能直接复用 Claude markdown 格式
+5. **同步 Codex runtime**：修改 Claude Agent/Skill 后运行 `npm run sync:codex`
+6. **不要混用 runtime 格式**：Codex skill/agent 由脚本生成到 `plugin/codex/`，不要手工复制 Claude markdown 冒充 Codex 格式
 
 ## 修改组件蓝图时注意
 

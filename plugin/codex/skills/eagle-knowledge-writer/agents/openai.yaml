@@ -1,0 +1,4 @@
+interface:
+  display_name: "eagle knowledge-writer — 知识沉淀"
+  short_description: "原子 Skill。只负责一件事：任务完成后沉淀知识和记忆。"
+  default_prompt: "Use $eagle-knowledge-writer to run the matching Eagle workflow."

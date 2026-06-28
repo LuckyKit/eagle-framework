@@ -1,0 +1,4 @@
+interface:
+  display_name: "eagle gate — 质量门禁"
+  short_description: "在计划、执行、测试、审查和完成前检查最小必要质量门禁。"
+  default_prompt: "Use $eagle-gate to run the matching Eagle workflow."

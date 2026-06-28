@@ -1,0 +1,4 @@
+interface:
+  display_name: "eagle plan — 方案规划"
+  short_description: "原子 Skill。只负责一件事：读取 DISCUSSION.md，生成 Phase + Wave 计划，输出 PLAN.md。"
+  default_prompt: "Use $eagle-plan to run the matching Eagle workflow."

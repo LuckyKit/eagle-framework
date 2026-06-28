@@ -1,0 +1,4 @@
+interface:
+  display_name: "/new-project — 项目初始化"
+  short_description: "纯脚手架工具：创建目录结构、复制编码规范、生成骨架文件。"
+  default_prompt: "Use $eagle-new-project to run the matching Eagle workflow."

@@ -14,6 +14,7 @@
     "eagle": "./bin/eagle.js"
   },
   "scripts": {
+    "sync:codex": "node scripts/generate-codex-runtime.js",
     "install:user":    "node bin/eagle.js install --user",
     "install:project": "node bin/eagle.js install --project",
     "uninstall:user":    "node bin/eagle.js uninstall --user",
