@@ -23,7 +23,8 @@ description: "需求分析专家 - 读取需求，查阅组件库和规范，输
 
 检测项目目录，确定本次任务涉及哪些栈：
 - `backend/go.mod` 存在 → 读 `.eagle/rules/go/INDEX.md`
-- `web/package.json` 存在 → 读 `.eagle/rules/react/INDEX.md`
+- `backend/pyproject.toml` 存在 → 读 `.eagle/rules/python/INDEX.md`
+- `web/next.config.ts` 存在 → 读 `.eagle/rules/nextjs/INDEX.md`
 - `mobile/pubspec.yaml` 存在 → 读 `.eagle/rules/flutter/INDEX.md`
 
 **只读任务涉及的栈的规范，不全量加载。**
@@ -46,7 +47,7 @@ description: "需求分析专家 - 读取需求，查阅组件库和规范，输
 # 方案 - {需求标题}
 
 > 制定时间：{YYYY-MM-DD HH:mm}
-> 技术栈：{Go / React / Flutter}
+> 技术栈：{Go / Python / Next.js / Flutter}
 > 组件复用：{组件名 或 无}
 
 ## 我的理解

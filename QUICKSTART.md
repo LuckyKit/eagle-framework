@@ -14,7 +14,7 @@ Eagle 分成两层：
 在 Eagle 框架仓库执行：
 
 ```bash
-cd C:\Users\loco9\Desktop\eagle-framework
+cd eagle-framework/
 npm link
 ```
 
@@ -27,7 +27,7 @@ eagle --help
 如果你不想使用 `npm link`，也可以直接调用本地入口：
 
 ```bash
-node C:\Users\loco9\Desktop\eagle-framework\bin\eagle.js --help
+node ./bin/eagle.js --help
 ```
 
 ## 2. 安装用户级 Eagle
@@ -35,7 +35,7 @@ node C:\Users\loco9\Desktop\eagle-framework\bin\eagle.js --help
 用户级安装只需要做一次。它会把 Eagle runtime 复制到 `~/.claude/`。
 
 ```bash
-cd C:\Users\loco9\Desktop\eagle-framework
+cd eagle-framework/
 eagle install --user
 ```
 
@@ -44,7 +44,7 @@ eagle install --user
 如果没有使用 `npm link`：
 
 ```bash
-node C:\Users\loco9\Desktop\eagle-framework\bin\eagle.js install --user
+node ./bin/eagle.js install --user
 ```
 
 ## 3. 在你的业务项目中初始化 Eagle
@@ -52,7 +52,7 @@ node C:\Users\loco9\Desktop\eagle-framework\bin\eagle.js install --user
 进入你自己的项目目录：
 
 ```bash
-cd C:\path\to\your-project
+cd /path/to/your-project
 eagle install --project
 ```
 
@@ -61,8 +61,8 @@ eagle install --project
 如果没有使用 `npm link`：
 
 ```bash
-cd C:\path\to\your-project
-node C:\Users\loco9\Desktop\eagle-framework\bin\eagle.js install --project
+cd /path/to/your-project
+node /path/to/eagle-framework/bin/eagle.js install --project
 ```
 
 安装后你的项目会多出类似结构：
@@ -159,7 +159,7 @@ eagle map
 当你修改了 Eagle 框架里的 `payload/` 规范或组件蓝图后，在业务项目里重新执行：
 
 ```bash
-cd C:\path\to\your-project
+cd /path/to/your-project
 eagle install --project
 ```
 
@@ -176,11 +176,11 @@ eagle map
 新项目或现有项目接入 Eagle，最短路径是：
 
 ```bash
-cd C:\Users\loco9\Desktop\eagle-framework
+cd eagle-framework/
 npm link
 eagle install --user
 
-cd C:\path\to\your-project
+cd /path/to/your-project
 eagle install --project
 eagle map
 ```

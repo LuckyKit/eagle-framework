@@ -11,8 +11,11 @@
 | `templates/go/go.mod.tpl` | `backend/go.mod` | `{{PROJECT_NAME}}` |
 | `templates/go/main.go.tpl` | `backend/cmd/server/main.go` | `{{PROJECT_NAME}}` |
 | `templates/go/config.yaml.tpl` | `backend/config/config.yaml` | — |
-| `templates/react/package.json.tpl` | `web/package.json` | `{{PROJECT_NAME}}` |
-| `templates/react/vite.config.ts.tpl` | `web/vite.config.ts` | — |
+| `templates/python/pyproject.toml.tpl` | `backend/pyproject.toml` | `{{PROJECT_NAME}}` |
+| `templates/python/main.py.tpl` | `backend/app/main.py` | `{{PROJECT_NAME}}` |
+| `templates/python/config.yaml.tpl` | `backend/config.yaml` | — |
+| `templates/nextjs/package.json.tpl` | `web/package.json` | `{{PROJECT_NAME}}` |
+| `templates/nextjs/next.config.ts.tpl` | `web/next.config.ts` | — |
 | `templates/flutter/pubspec.yaml.tpl` | `mobile/pubspec.yaml` | `{{PROJECT_NAME}}` |
 
 ## 骨架文件生成原则

@@ -1,8 +1,8 @@
 {
   "name": "eagle-framework",
   "version": "0.1.0",
-  "description": "Eagle — Autonomous Full-Stack Development Framework for Go · React · Flutter",
-  "keywords": ["agent", "framework", "go", "react", "flutter", "fullstack", "claude-code"],
+  "description": "Eagle — Autonomous Full-Stack Development Framework for Go · Python · Next.js · Flutter",
+  "keywords": ["agent", "framework", "go", "python", "nextjs", "flutter", "fullstack", "claude-code"],
   "author": "loco9",
   "license": "MIT",
   "repository": {

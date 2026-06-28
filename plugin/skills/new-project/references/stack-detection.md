@@ -7,7 +7,8 @@
 | 文件 | 判断结果 |
 |------|---------|
 | `backend/go.mod` | Go 后端项目 |
-| `web/package.json` | React Web 项目 |
+| `backend/pyproject.toml` | Python 后端项目 |
+| `web/next.config.ts` | Next.js Web 项目 |
 | `mobile/pubspec.yaml` | Flutter 移动端项目 |
 | `.eagle/` 目录存在 | Eagle 框架项目 |
 
@@ -16,10 +17,11 @@
 ```
 🦅 Eagle Framework 项目已检测
 
-技术栈：Go + React
+技术栈：Go + Python + Next.js
 编码规范：
 - go 规范：.eagle/rules/go/INDEX.md
-- react 规范：.eagle/rules/react/INDEX.md
+- python 规范：.eagle/rules/python/INDEX.md
+- nextjs 规范：.eagle/rules/nextjs/INDEX.md
 知识库：.eagle/knowledge/
 记忆库：.eagle/memory/
 组件库：.eagle/components/

@@ -31,7 +31,7 @@
 - 读 PLAN.md → 获取 Wave 的范围、涉及栈、最小验证条件
 - 读 `.eagle/codebase/` → 获取项目结构、测试命令和本地约定
 - 读 `.eagle/rules/{stack}/` → 加载该 Wave 涉及栈的编码规范
-- **只加载该 Wave 涉及的栈规范**（Wave 标注 `go` 就只读 go 规范，不读 react）
+- **只加载该 Wave 涉及的栈规范**（Wave 标注 `go` 就只读 go 规范，不读 nextjs）
 - 读 `.eagle/knowledge/` → 查找相关已有知识
 
 ### 2. 召唤 eagle-coder
@@ -81,7 +81,7 @@ Commit：{N} 次
 ## 硬性约束
 
 1. **只实现指定 Wave** — 不实现其他 Wave 的内容，不提前做后面的事
-2. **只读涉及栈的规范** — Wave 标注 `go` 就不读 react/flutter 规范
+2. **只读涉及栈的规范** — Wave 标注 `go` 就不读 python/nextjs/flutter 规范
 3. **原子 commit** — 每个逻辑步骤单独 commit，不攒大 commit
 4. **不跑测试** — 测试交给 /eagle:tester
 5. **遵守编码规范** — 必须符合 `.eagle/rules/{stack}/` 中的规范
