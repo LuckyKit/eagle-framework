@@ -21,3 +21,5 @@ npm-debug.log*
 # 测试覆盖率（框架自身不需要）
 coverage/
 coverage.out
+
+.orca/
