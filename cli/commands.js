@@ -764,9 +764,17 @@ function writeIfNotExists(filePath, content) {
 
 function writeGeneratedFile(filePath, content, overwrite = true) {
   if (!overwrite && fs.existsSync(filePath)) return 'skipped'
+  if (fs.existsSync(filePath)) {
+    const existing = fs.readFileSync(filePath, 'utf8')
+    if (normalizeLineEndings(existing) === normalizeLineEndings(content)) return 'unchanged'
+  }
   mkdirSafe(path.dirname(filePath))
   fs.writeFileSync(filePath, content, 'utf8')
   return 'written'
+}
+
+function normalizeLineEndings(content) {
+  return content.replace(/\r\n/g, '\n')
 }
 
 function cleanGitignore() {
