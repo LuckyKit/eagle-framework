@@ -58,6 +58,8 @@ eagle install --project
 
 这个命令会询问要安装的 runtime，并在当前项目里生成对应 runtime 目录和 `.eagle/`：Claude 使用 `.claude/`，Codex 使用 `.agents/skills/` 和 `.codex/agents/`，`.eagle/` 保存通用规范、组件蓝图和基础上下文，并自动扫描现有技术栈。它不会询问项目名或技术栈，也不会生成业务目录。
 
+如果当前项目已经存在 `.eagle/`，再次运行 `eagle install --project` 会保留已有项目状态、知识库、记忆库、任务记录和代码库地图文件，只更新 runtime skills/agents 以及框架分发的规范/组件模板。需要刷新代码库地图时，显式运行 `eagle map`。
+
 如果不想交互选择 runtime，可以直接指定：
 
 ```bash

@@ -69,6 +69,8 @@ npx eagle install --project
 - 初始化生命周期、质量门禁、长期记忆
 - 自动扫描现有项目并生成 `.eagle/codebase/`
 
+如果项目里已经存在 `.eagle/`，`install --project` 只会更新 runtime skills/agents 和框架分发的规范/组件模板；`.eagle/PROJECT.md`、`ROADMAP.md`、`STATE.md`、`knowledge/`、`memory/`、`tasks/` 以及已有 `.eagle/codebase/` 文件都会保留。需要刷新代码库地图时，显式运行 `eagle map`。
+
 ---
 
 ## 可用命令
