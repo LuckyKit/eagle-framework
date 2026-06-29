@@ -56,6 +56,25 @@ backend/
 
 ---
 
+## 依赖管理
+
+Python 项目使用 `uv` 管理依赖和虚拟环境，`pyproject.toml` 是依赖声明来源，`uv.lock` 用于锁定可复现版本。
+
+```bash
+# 安装项目依赖
+uv add fastapi sqlalchemy
+
+# 安装开发 / 测试依赖
+uv add --dev pytest pytest-asyncio pytest-mock pytest-cov httpx
+
+# 同步已有依赖
+uv sync
+```
+
+**禁止**：不要手动执行 `python -m venv .venv` 创建虚拟环境；不要绕过 `pyproject.toml` 直接维护本地环境状态。
+
+---
+
 ## 分层职责
 
 ### 1. API 层（Router）

@@ -18,6 +18,7 @@
 ## 技术栈约定
 
 - **Python 版本**：3.12+
+- **依赖管理**：使用 `uv` 管理项目依赖和虚拟环境；安装依赖用 `uv add ...` / `uv sync`，不要手动执行 `python -m venv .venv`
 - **Web 框架**：FastAPI
 - **ORM**：SQLAlchemy 2.0（async 会话，`selectinload` / `joinedload` 预加载）
 - **数据校验**：Pydantic v2（`model_validate` / `model_dump`）

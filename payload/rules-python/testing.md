@@ -12,7 +12,7 @@
 
 ```bash
 # 安装测试依赖
-pip install pytest pytest-asyncio pytest-mock pytest-cov httpx
+uv add --dev pytest pytest-asyncio pytest-mock pytest-cov httpx
 ```
 
 ---
