@@ -38,6 +38,7 @@ Codex invocation: `$eagle-dev`. Legacy Claude slash-command examples are preserv
   "status": "in_progress",
   "stage": "coder",
   "stacks": ["go", "python", "nextjs"],
+  "currentPhase": "1",
   "currentWave": "1.2",
   "phases": [
     {
@@ -79,7 +80,7 @@ Codex invocation: `$eagle-dev`. Legacy Claude slash-command examples are preserv
 
 **`status` 可选值**：`planning` / `in_progress` / `paused` / `done` / `failed`
 
-**`stage` 可选值**：`discuss` / `plan` / `coder` / `tester-minimal` / `tester-full` / `reviewer` / `knowledge-writer` / `done`
+**`stage` 可选值**：`discuss` / `plan` / `coder` / `tester-minimal` / `phase-verify` / `reviewer` / `knowledge-writer` / `done`
 
 **每次阶段转换必须更新 STATE.json**，每个 Wave 状态变化也必须更新。
 
@@ -128,48 +129,61 @@ Codex invocation: `$eagle-dev`. Legacy Claude slash-command examples are preserv
 
 确认后：
 - 将 PLAN.md 中的 phases/waves 结构写入 STATE.json
-- 更新 STATE.json：`stage: "coder"`, `currentWave: 第一个 Wave 的 ID`
+- 更新 STATE.json：`stage: "coder"`, `currentPhase: 第一个 Phase 的 ID`, `currentWave: 第一个 Wave 的 ID`
 - 调用 `/eagle:gate {slug} plan`，FAIL 时先修 PLAN.md，不进入编码
 
 ---
 
-### 阶段 3：Wave 执行（/eagle:coder + /eagle:tester）
+### 阶段 3：当前 Phase 自动执行（/eagle:coder + /eagle:tester）
 
-按并行批次执行 Wave：
+每次 `/eagle:dev` 执行 `currentPhase` 指向的整个 Phase。Phase 内按依赖批次自动推进，不在 Wave 或批次之间询问用户。
 
 ```
-确定当前批次（所有 depends_on 已完成的 Wave）
+确定当前 Phase
+  ↓
+确定当前批次（该 Phase 内所有 depends_on 已完成的 Wave）
   ↓
 同时调用 /eagle:coder 执行批次中每个 Wave
   ↓
 每个 Wave 完成后立即调用 /eagle:tester minimal
   ↓
-tester PASS → 更新 Wave status: "done" → 更新 STATE.json
-tester FAIL → 调用 /eagle:coder fix 模式 → 重试一次 → 再 FAIL → Wave status: "failed"
+tester PASS → 记录验证结果和 commit → 更新 Wave status: "done"
+tester FAIL → 调用 /eagle:coder fix 模式 → fix commit → 重试，最多 2 次
   ↓
-批次所有 Wave 完成（含 failed）→ 进入下一批次
+批次所有 Wave 完成 → 进入下一批次
   ↓
-所有批次完成 → 进入阶段 4
+当前 Phase 所有 Wave 完成 → 进入阶段 4
 ```
 
+**Wave 闭环要求**：
+- 开发：`/eagle:coder {slug} {wave-id}` 只实现该 Wave 范围。
+- 提交：coder 必须为该 Wave 的代码、测试、必要文档生成原子 git commit；fix 模式也必须生成 `fix:` commit。
+- 测试：`/eagle:tester {slug} {wave-id}` 只跑该 Wave 的最小验证。
+- 验证：把执行命令、PASS/FAIL、失败原因、commit hash 写入 `.eagle/tasks/{slug}/waves/{wave-id}/TEST.md` 和 STATE.json。
+- 收尾：Wave PASS 后不得留下未提交的源码、测试或必要文档改动；如果仓库策略跟踪 `.eagle/tasks/`，对应 TEST.md 也应提交。
+
 **STATE.json 更新时机**：
+- Phase 开始时：`currentPhase`, `status: "in_progress"`, `startedAt`
 - Wave 开始时：`status: "in_progress"`, `startedAt`
 - Wave 通过 tester 后：`status: "done"`, `completedAt`
 - Wave 失败后：`status: "failed"`, `failedReason`
+- Phase 全部 Wave 通过后：Phase `status: "done"`, `completedAt`
 
 **有 failed Wave 时**：
-- 不中断整个任务，继续执行其他无依赖 Wave
-- 阶段 3 结束时统一报告 failed Wave，等待用户决策
+- 不询问用户，不手动决策
+- 自动执行 fix + minimal tester，最多 2 次
+- 仍失败时标记该 Wave failed；依赖它的 Wave 标记 blocked；继续执行不依赖失败 Wave 的其他 Wave
+- 当前 Phase 结束时如仍有 failed/blocked Wave，标记 Phase failed，暂停任务并输出恢复命令
 
 ---
 
-### 阶段 4：全量测试（/eagle:tester full）
+### 阶段 4：Phase 级验证（/eagle:tester full）
 
-更新 STATE.json：`stage: "tester-full"`
+更新 STATE.json：`stage: "phase-verify"`
 
 调用 `/eagle:tester {slug} full`。
 
-- PASS → 进入阶段 5
+- PASS → 记录 Phase 级验证结果，进入阶段 5
 - FAIL → 调用 `/eagle:coder fix` → 重跑 → 最多 2 次 → 仍 FAIL → 暂停报告
 
 ---
@@ -185,20 +199,28 @@ tester FAIL → 调用 /eagle:coder fix 模式 → 重试一次 → 再 FAIL →
 
 ---
 
-### 阶段 6：完成门禁与知识沉淀
+### 阶段 6：Phase 收尾与下一阶段交接
 
-调用 `/eagle:gate {slug} done`。
+当前 Phase 验证和审查通过后：
 
-- PASS → 继续知识沉淀
+- 更新当前 Phase：`status: "done"`, `completedAt`
+- 汇总本 Phase 完成的 Wave、验证结果、review 结论、commit 列表
+- 更新 `.eagle/STATE.md` 的当前完成阶段、最近决策和下一步
+
+如果 PLAN.md 中还有下一个 Phase：
+
+- 更新 STATE.json：`currentPhase: 下一个 Phase ID`, `currentWave: 下一个 Phase 的第一个 Wave ID`, `stage: "coder"`, `status: "in_progress"`
+- 不自动跨 Phase 继续执行；输出 Phase 完成报告和下一阶段新会话提示词
+- 用户在新会话或当前会话执行 `/eagle:dev {slug}` 后，继续自动完成下一个 Phase
+
+如果没有下一个 Phase：
+
+- 调用 `/eagle:gate {slug} done`
+- PASS → 更新 STATE.json：`stage: "knowledge-writer"`
 - FAIL → 暂停并报告阻塞项
-
-更新 STATE.json：`stage: "knowledge-writer"`
-
-调用 `/eagle:knowledge-writer {slug}`。
-调用 `/eagle:memory capture {slug}`，把可复用决策和踩坑写入长期记忆。
-
-完成后更新 STATE.json：`status: "done"`, `stage: "done"`。
-同步更新 `.eagle/STATE.md` 的最近决策和下一步。
+- 调用 `/eagle:knowledge-writer {slug}`
+- 调用 `/eagle:memory capture {slug}`，把可复用决策和踩坑写入长期记忆
+- 完成后更新 STATE.json：`status: "done"`, `stage: "done"`
 
 ---
 
@@ -221,6 +243,31 @@ tester FAIL → 调用 /eagle:coder fix 模式 → 重试一次 → 再 FAIL →
 ---
 
 ## 完成报告
+
+### Phase 完成但任务未全部完成
+
+```
+✅ Phase {currentPhase} 完成
+
+任务：{slug}（{title}）
+当前完成阶段：Phase {currentPhase} — {phase-title}
+下一阶段：Phase {nextPhase} — {next-phase-title}
+
+本阶段摘要：
+  Wave：{M}/{M} 完成
+  Commit：{X} 次
+  最小验证：全部通过
+  Phase 验证：通过
+  审查：无 CRITICAL 问题
+
+继续执行：
+  当前会话命令：/eagle:dev {slug}
+  新会话提示词：继续执行 Eagle 任务 {slug} 的 Phase {nextPhase}。请按 /eagle:dev 编排自动完成整个 Phase：每个 Wave 自行开发、测试、验证、git commit，Wave/批次之间不要停下来询问；Phase 完成后报告已完成阶段、下一阶段和继续命令。
+
+STATE.json：.eagle/tasks/{slug}/STATE.json（currentPhase: {nextPhase}, stage: coder）
+```
+
+### 全部 Phase 完成
 
 ```
 ✅ /eagle:dev 完成
@@ -247,8 +294,10 @@ STATE.json：.eagle/tasks/{slug}/STATE.json（status: done）
 ```
 ⚠️ 以下 Wave 需要人工处理：
   Wave {id}：{失败原因}
+  受阻 Wave：{blocked-wave-ids}
 
-其余 Wave 已完成。可用 /eagle:dev {slug} 恢复并继续。
+其余不依赖失败项的 Wave 已完成并提交。
+修复后可用 /eagle:dev {slug} 恢复当前 Phase。
 ```
 
 ---
@@ -259,7 +308,8 @@ STATE.json：.eagle/tasks/{slug}/STATE.json（status: done）
 2. **阶段转换后可随时恢复** — /eagle:dev {slug} 从 stage 字段继续，不重做已完成阶段
 3. **能并行的 Wave 必须并行** — 不允许把 parallel: true 的 Wave 串行执行
 4. **failed Wave 不阻塞其他无依赖 Wave** — 继续执行，最后统一报告
-5. **用户只有两次交互** — discuss 确认 + plan 确认，之后零交互
+5. **Phase 内零交互** — discuss 确认 + plan 确认后，当前 Phase 的 Wave/批次/测试/修复/提交全自动执行
 6. **栈判断由 PLAN.md Wave 标注决定** — 不让 coder 自行判断实现哪个栈
 7. **质量门禁不可跳过** — plan gate 和 done gate 是自用提速的底线
 8. **长期记忆必须沉淀** — 完成任务时至少记录一个可复用经验或明确说明无新增
+9. **Phase 交接必须清楚** — 每个 Phase 完成后必须报告当前完成阶段、下一阶段、继续命令和新会话提示词
